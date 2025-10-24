@@ -19,9 +19,14 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "CleanSwipe needs access to your photos to help you clean up your gallery.",
+        "NSPhotoLibraryAddUsageDescription": "CleanSwipe needs permission to save photos.",
+        "PHPhotoLibraryPreventAutomaticLimitedAccessAlert": true,
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.nischaysood.cleanswipe"
+      "bundleIdentifier": "com.nischaysood.cleanswipe",
+      "entitlements": {
+        "com.apple.developer.photo-library-access-level": "delete"
+      }
     },
     "android": {
       "adaptiveIcon": {

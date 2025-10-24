@@ -1,10 +1,20 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
-export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro }) {
+export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro, onBack }) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
+        {onBack && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backText}>‹ Back</Text>
+          </TouchableOpacity>
+        )}
+        
         <View style={styles.leftSection}>
           <View style={styles.counterContainer}>
             <Text style={styles.counterLabel}>Deleted</Text>
@@ -46,6 +56,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  backButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 12,
+  },
+  backText: {
+    color: '#4CAF50',
+    fontSize: 18,
+    fontWeight: '600',
   },
   leftSection: {
     gap: 8,

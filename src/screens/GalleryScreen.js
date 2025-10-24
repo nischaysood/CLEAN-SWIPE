@@ -14,7 +14,7 @@ const SWIPE_COUNT_KEY = '@CleanSwipe:swipeCount';
 const IS_PRO_KEY = '@CleanSwipe:isPro';
 const HAS_SEEN_DELETE_INFO_KEY = '@CleanSwipe:hasSeenDeleteInfo';
 
-export default function GalleryScreen() {
+export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -157,10 +157,20 @@ export default function GalleryScreen() {
         })
       );
 
+      // Filter by selected month if provided
+      let filteredPhotos = photosWithInfo;
+      if (selectedYear !== undefined && selectedMonth !== undefined) {
+        filteredPhotos = photosWithInfo.filter(photo => {
+          const photoDate = new Date(photo.creationTime);
+          return photoDate.getFullYear() === selectedYear && 
+                 photoDate.getMonth() === selectedMonth;
+        });
+      }
+
       if (loadMore) {
-        setPhotos([...photos, ...photosWithInfo]);
+        setPhotos([...photos, ...filteredPhotos]);
       } else {
-        setPhotos(photosWithInfo);
+        setPhotos(filteredPhotos);
       }
 
       setEndCursor(album.endCursor);
@@ -254,12 +264,30 @@ export default function GalleryScreen() {
 
     const lastDeleted = deletedPhotos[deletedPhotos.length - 1];
     
+    // Remove from deletedPhotos array
+    const updatedDeletedPhotos = [...deletedPhotos];
+    updatedDeletedPhotos.pop();
+    setDeletedPhotos(updatedDeletedPhotos);
+    
+    // Decrease deleted count
+    setDeletedCount(deletedCount - 1);
+    
+    // Re-insert photo back into the photos array at current position
+    const updatedPhotos = [...photos];
+    updatedPhotos.splice(currentIndex, 0, lastDeleted);
+    setPhotos(updatedPhotos);
+    
+    // Move back one position to show the restored photo
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+    
+    // Note: The photo is already in "Recently Deleted" on the device
+    // We can't un-delete it from there, but we restore it in the app's flow
     Alert.alert(
-      'Recover Deleted Photos',
-      Platform.OS === 'ios' 
-        ? `Photos are in your "Recently Deleted" album.\n\nOpen Photos app → Albums → Recently Deleted to recover them within 30 days.`
-        : `Photos are in your device's Trash/Bin.\n\nOpen your gallery app to recover them within 30 days.`,
-      [{ text: 'Got it' }]
+      'Photo Restored',
+      'Photo has been restored to your swipe queue!\n\nNote: It\'s still in "Recently Deleted" on your device. You can recover it permanently from the Photos app.',
+      [{ text: 'OK' }]
     );
   };
 
@@ -331,6 +359,7 @@ export default function GalleryScreen() {
         canUndo={deletedPhotos.length > 0}
         swipesRemaining={remainingSwipes}
         isPro={isPro}
+        onBack={onBack}
       />
       
       <View style={styles.cardContainer}>
