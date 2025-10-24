@@ -206,9 +206,14 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
       // On older Android: permanently deletes (user should be warned)
       await MediaLibrary.deleteAssetsAsync([photoToDelete.id]);
       
+      // Remove photo from array
+      const updatedPhotos = [...photos];
+      updatedPhotos.splice(currentIndex, 1);
+      setPhotos(updatedPhotos);
+      
       setDeletedPhotos([...deletedPhotos, { ...photoToDelete, index: currentIndex }]);
       setDeletedCount(deletedCount + 1);
-      setCurrentIndex(currentIndex + 1);
+      // Don't increment index since we removed the item - next photo is now at current index
       await incrementSwipeCount();
 
       // Load more photos if getting close to the end
@@ -272,15 +277,15 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
     // Decrease deleted count
     setDeletedCount(deletedCount - 1);
     
-    // Re-insert photo back into the photos array at current position
+    // Re-insert photo back into the photos array
     const updatedPhotos = [...photos];
-    updatedPhotos.splice(currentIndex, 0, lastDeleted);
+    // Insert before the current index so it becomes the current photo
+    const insertPosition = Math.max(0, currentIndex - 1);
+    updatedPhotos.splice(insertPosition, 0, lastDeleted);
     setPhotos(updatedPhotos);
     
-    // Move back one position to show the restored photo
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
+    // Set index to show the restored photo
+    setCurrentIndex(insertPosition);
     
     // Note: The photo is already in "Recently Deleted" on the device
     // We can't un-delete it from there, but we restore it in the app's flow
