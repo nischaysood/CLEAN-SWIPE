@@ -11,9 +11,12 @@ A fun, Tinder-style mobile app to help you declutter your photo gallery. Swipe l
 - 🔄 **Delete & Skip**: Easy controls to delete or skip photos
 - 📊 **Track Progress**: Real-time counter of deleted photos
 - 🔁 **Infinite Scrolling**: Photos load automatically as you swipe (handles thousands of photos)
+- 📅 **Month Selector**: Browse and clean photos by month
+- ↶ **Working Undo**: Restore accidentally deleted photos
 - 🎨 **Dark Theme**: Beautiful dark UI optimized for photo viewing
 - 📲 **Cross-Platform**: Works on both iOS and Android
 - 💎 **Freemium Model**: 50 free swipes, upgrade for unlimited (see [FREE_TIER.md](FREE_TIER.md))
+- 💳 **Payment Ready**: Complete guides for iOS App Store & Android Play Store monetization
 
 ## 🚀 Getting Started
 
