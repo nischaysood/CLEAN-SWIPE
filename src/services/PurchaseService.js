@@ -1,9 +1,16 @@
-import Purchases from 'react-native-purchases';
 import { Platform, Alert } from 'react-native';
 
 // TODO: Replace with your actual RevenueCat API keys
 const REVENUECAT_API_KEY_IOS = 'appl_YOUR_IOS_KEY_HERE';
 const REVENUECAT_API_KEY_ANDROID = 'goog_YOUR_ANDROID_KEY_HERE';
+
+// Try to import Purchases, but handle if native module not available
+let Purchases = null;
+try {
+  Purchases = require('react-native-purchases').default;
+} catch (error) {
+  console.warn('⚠️ RevenueCat native module not available. Rebuild app with: eas build');
+}
 
 class PurchaseService {
   constructor() {
@@ -15,6 +22,13 @@ class PurchaseService {
    * Call this once when app starts
    */
   async initialize() {
+    // Check if native module is available
+    if (!Purchases) {
+      console.warn('⚠️ RevenueCat not available - native module needs rebuild');
+      console.warn('Run: eas build --profile development --platform ios');
+      return;
+    }
+
     try {
       const apiKey = Platform.OS === 'ios' 
         ? REVENUECAT_API_KEY_IOS 
@@ -39,8 +53,8 @@ class PurchaseService {
    */
   async getOfferings() {
     try {
-      if (!this.initialized) {
-        console.warn('RevenueCat not initialized');
+      if (!Purchases || !this.initialized) {
+        console.warn('RevenueCat not available or not initialized');
         return [];
       }
 
@@ -66,8 +80,8 @@ class PurchaseService {
    */
   async purchasePackage(packageToPurchase) {
     try {
-      if (!this.initialized) {
-        throw new Error('RevenueCat not initialized');
+      if (!Purchases || !this.initialized) {
+        throw new Error('RevenueCat not available or not initialized');
       }
 
       console.log('Attempting purchase...');
@@ -93,8 +107,8 @@ class PurchaseService {
    */
   async checkProStatus(customerInfo = null) {
     try {
-      if (!this.initialized) {
-        console.warn('RevenueCat not initialized, returning false');
+      if (!Purchases || !this.initialized) {
+        console.warn('RevenueCat not available or not initialized, returning false');
         return false;
       }
 
@@ -119,8 +133,8 @@ class PurchaseService {
    */
   async restorePurchases() {
     try {
-      if (!this.initialized) {
-        throw new Error('RevenueCat not initialized');
+      if (!Purchases || !this.initialized) {
+        throw new Error('RevenueCat not available or not initialized');
       }
 
       console.log('Restoring purchases...');
@@ -160,7 +174,7 @@ class PurchaseService {
    */
   async getCustomerInfo() {
     try {
-      if (!this.initialized) {
+      if (!Purchases || !this.initialized) {
         return null;
       }
       return await Purchases.getCustomerInfo();
@@ -175,7 +189,7 @@ class PurchaseService {
    * @returns {boolean}
    */
   isConfigured() {
-    return this.initialized;
+    return Purchases !== null && this.initialized;
   }
 }
 
