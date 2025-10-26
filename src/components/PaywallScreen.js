@@ -1,7 +1,87 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import PurchaseService from '../services/PurchaseService';
 
 export default function PaywallScreen({ swipesUsed, onUpgrade }) {
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
+
+  useEffect(() => {
+    loadPackages();
+  }, []);
+
+  const loadPackages = async () => {
+    try {
+      setLoading(true);
+      const availablePackages = await PurchaseService.getOfferings();
+      setPackages(availablePackages);
+    } catch (error) {
+      console.error('Error loading packages:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePurchase = async () => {
+    // If RevenueCat not configured or no packages, use fake upgrade
+    if (!PurchaseService.isConfigured() || packages.length === 0) {
+      Alert.alert(
+        'Demo Mode',
+        'RevenueCat is not configured yet. This will grant Pro access for testing.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', onPress: onUpgrade }
+        ]
+      );
+      return;
+    }
+
+    try {
+      setPurchasing(true);
+      
+      // Purchase the first package (monthly subscription)
+      const isPro = await PurchaseService.purchasePackage(packages[0]);
+      
+      if (isPro) {
+        Alert.alert(
+          'Welcome to Pro! 🎉',
+          'You now have unlimited swipes. Thank you for your support!',
+          [{ text: 'Start Swiping!', onPress: onUpgrade }]
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        'Purchase Failed',
+        'Unable to complete purchase. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      setPurchasing(true);
+      const isPro = await PurchaseService.restorePurchases();
+      if (isPro) {
+        onUpgrade();
+      }
+    } catch (error) {
+      // Error already shown in PurchaseService
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const getPrice = () => {
+    if (packages.length > 0 && packages[0].product) {
+      return packages[0].product.priceString || '$4.99/month';
+    }
+    return '$4.99/month';
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -33,17 +113,36 @@ export default function PaywallScreen({ swipesUsed, onUpgrade }) {
         </View>
 
         <TouchableOpacity
-          style={styles.upgradeButton}
-          onPress={onUpgrade}
+          style={[styles.upgradeButton, (loading || purchasing) && styles.buttonDisabled]}
+          onPress={handlePurchase}
           activeOpacity={0.8}
+          disabled={loading || purchasing}
         >
-          <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
-          <Text style={styles.priceText}>$4.99/month</Text>
+          {purchasing ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
+              <Text style={styles.priceText}>{getPrice()}</Text>
+            </>
+          )}
         </TouchableOpacity>
 
-        <Text style={styles.disclaimer}>
-          Payment integration coming soon
-        </Text>
+        <TouchableOpacity
+          style={styles.restoreButton}
+          onPress={handleRestore}
+          disabled={purchasing}
+        >
+          <Text style={styles.restoreText}>
+            {purchasing ? 'Restoring...' : 'Restore Purchases'}
+          </Text>
+        </TouchableOpacity>
+
+        {!PurchaseService.isConfigured() && (
+          <Text style={styles.disclaimer}>
+            ⚠️ Payment system not configured yet
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -107,6 +206,10 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
+  buttonDisabled: {
+    backgroundColor: '#3A7A3A',
+    opacity: 0.7,
+  },
   upgradeButtonText: {
     color: '#FFFFFF',
     fontSize: 20,
@@ -117,6 +220,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     opacity: 0.9,
+  },
+  restoreButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  restoreText: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   disclaimer: {
     color: '#666666',

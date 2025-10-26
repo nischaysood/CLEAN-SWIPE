@@ -6,6 +6,7 @@ import TopPanel from '../components/TopPanel';
 import SwipeCard from '../components/SwipeCard';
 import BottomActions from '../components/BottomActions';
 import PaywallScreen from '../components/PaywallScreen';
+import PurchaseService from '../services/PurchaseService';
 
 const { height } = Dimensions.get('window');
 
@@ -53,9 +54,19 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
 
   const loadProStatus = async () => {
     try {
-      const pro = await AsyncStorage.getItem(IS_PRO_KEY);
-      if (pro === 'true') {
+      // First check AsyncStorage (offline/cached status)
+      const cachedPro = await AsyncStorage.getItem(IS_PRO_KEY);
+      if (cachedPro === 'true') {
         setIsPro(true);
+      }
+
+      // Then check RevenueCat for real subscription status
+      if (PurchaseService.isConfigured()) {
+        const isPro = await PurchaseService.checkProStatus();
+        setIsPro(isPro);
+        
+        // Update cache
+        await AsyncStorage.setItem(IS_PRO_KEY, isPro ? 'true' : 'false');
       }
     } catch (error) {
       console.error('Error loading pro status:', error);

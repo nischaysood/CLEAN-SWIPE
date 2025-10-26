@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import MonthSelectorScreen from './src/screens/MonthSelectorScreen';
 import GalleryScreen from './src/screens/GalleryScreen';
+import PurchaseService from './src/services/PurchaseService';
 
 export default function App() {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [showGallery, setShowGallery] = useState(false);
+
+  // Initialize RevenueCat on app start
+  useEffect(() => {
+    PurchaseService.initialize();
+  }, []);
 
   const handleSelectMonth = (year, month) => {
     setSelectedYear(year);
