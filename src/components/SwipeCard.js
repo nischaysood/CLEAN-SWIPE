@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Image, StyleSheet, Dimensions, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Image, StyleSheet, Dimensions, Text, ActivityIndicator } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedGestureHandler,
@@ -20,12 +20,24 @@ const SWIPE_THRESHOLD = 120;
 export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight }) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   // Reset animation values when photo changes
   useEffect(() => {
     translateX.value = 0;
     translateY.value = 0;
+    setImageLoading(true);
+    setImageError(false);
   }, [photo.id]);
+
+  // Get the correct image URI - simplified for Android
+  const getImageUri = () => {
+    // Just use the URI directly
+    const uri = photo.uri;
+    console.log('📸 Image URI:', uri);
+    return uri;
+  };
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx) => {
@@ -112,11 +124,42 @@ export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight }) {
     <View style={styles.container}>
       <PanGestureHandler onGestureEvent={gestureHandler}>
         <Animated.View style={[styles.card, animatedCardStyle]}>
+          {/* Image with loading and error handling */}
           <Image
-            source={{ uri: photo.localUri || photo.uri }}
+            source={{ uri: getImageUri() }}
             style={styles.image}
             resizeMode="cover"
+            onLoadStart={() => {
+              console.log('🔄 Image loading started');
+              setImageLoading(true);
+            }}
+            onLoad={() => {
+              console.log('✅ Image loaded successfully');
+              setImageLoading(false);
+              setImageError(false);
+            }}
+            onError={(error) => {
+              console.error('❌ Image load error:', error.nativeEvent.error);
+              setImageLoading(false);
+              setImageError(true);
+            }}
           />
+
+          {/* Loading indicator */}
+          {imageLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4CAF50" />
+              <Text style={styles.loadingText}>Loading photo...</Text>
+            </View>
+          )}
+
+          {/* Error message */}
+          {imageError && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>⚠️</Text>
+              <Text style={styles.errorTextSmall}>Failed to load image</Text>
+            </View>
+          )}
 
           <Animated.View style={[styles.overlay, styles.deleteOverlay, animatedDeleteStyle]}>
             <View style={styles.labelContainer}>
@@ -166,6 +209,39 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    marginTop: 12,
+    fontSize: 14,
+  },
+  errorContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+  },
+  errorText: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  errorTextSmall: {
+    color: '#FFFFFF',
+    fontSize: 14,
   },
   overlay: {
     position: 'absolute',

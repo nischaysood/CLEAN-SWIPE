@@ -119,63 +119,123 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
 
   const requestPermissions = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status === 'granted') {
+      console.log('🔐 Requesting photo permissions...');
+      
+      // First check current permission
+      const { status: currentStatus } = await MediaLibrary.getPermissionsAsync();
+      console.log('📱 Current permission status:', currentStatus);
+      
+      if (currentStatus === 'granted') {
+        console.log('✅ Already granted!');
         setPermissionGranted(true);
         await loadPhotos();
-      } else {
+        return;
+      }
+
+      // Request permission
+      console.log('📱 Requesting permission...');
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      console.log('📱 New permission status:', status);
+      
+      if (status === 'granted') {
+        console.log('✅ Permission granted, loading photos...');
+        setPermissionGranted(true);
+        await loadPhotos();
+      } else if (status === 'denied') {
+        console.log('❌ Permission denied');
         Alert.alert(
-          'Permission Required',
-          'CleanSwipe needs access to your photos to help you clean up your gallery.',
-          [{ text: 'OK' }]
+          '📷 Permission Needed!',
+          'CleanSwipe needs permission to access your photos. Please tap "Allow" when asked, or enable it in Settings → Apps → CleanSwipe → Permissions.',
+          [
+            { 
+              text: 'Try Again', 
+              onPress: () => requestPermissions()
+            },
+            { text: 'Cancel', style: 'cancel', onPress: () => setLoading(false) }
+          ]
+        );
+        setLoading(false);
+      } else {
+        console.log('⚠️ Permission status:', status);
+        Alert.alert(
+          'Permission Issue',
+          `Permission status: ${status}. Please go to Settings → Apps → CleanSwipe → Permissions and enable Photos.`,
+          [{ text: 'OK', onPress: () => setLoading(false) }]
         );
         setLoading(false);
       }
     } catch (error) {
-      console.error('Permission error:', error);
-      Alert.alert('Error', 'Failed to request permissions');
+      console.error('❌ Permission error:', error);
+      Alert.alert(
+        'Error',
+        `Permission error: ${error.message}\n\nPlease enable photo access in Settings → Apps → CleanSwipe.`,
+        [{ text: 'OK', onPress: () => setLoading(false) }]
+      );
       setLoading(false);
     }
   };
 
   const loadPhotos = async (loadMore = false) => {
     try {
+      console.log('📷 Loading photos... loadMore:', loadMore);
+      
       if (!loadMore) {
         setLoading(true);
       } else {
         setIsLoadingMore(true);
       }
 
+      console.log('📂 Fetching assets from MediaLibrary...');
       const album = await MediaLibrary.getAssetsAsync({
         mediaType: 'photo',
         sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-        first: 50, // Load 50 at a time for better performance
+        first: loadMore ? 20 : 5, // Load only 5 initially - SUPER FAST!
         after: loadMore ? endCursor : undefined,
       });
 
-      const photosWithInfo = await Promise.all(
-        album.assets.map(async (asset) => {
-          try {
-            const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
-            return {
-              ...asset,
-              localUri: assetInfo.localUri || assetInfo.uri,
-            };
-          } catch (error) {
-            console.error('Error loading asset info:', error);
-            return asset;
-          }
-        })
-      );
+      console.log(`✅ Found ${album.assets.length} photos, hasNextPage: ${album.hasNextPage}`);
+
+      if (album.assets.length === 0) {
+        console.log('⚠️ No photos found on device');
+        Alert.alert(
+          'No Photos Found',
+          'There are no photos in your gallery. Add some photos and try again!',
+          [{ text: 'OK', onPress: () => setLoading(false) }]
+        );
+        setLoading(false);
+        setIsLoadingMore(false);
+        return;
+      }
+
+      console.log('⚡ Using photos directly - NO SLOW LOADING!');
+      // Skip the slow getAssetInfoAsync - just use URIs directly!
+      const photosWithInfo = album.assets.map(asset => ({
+        ...asset,
+        localUri: asset.uri, // Use URI directly - much faster!
+      }));
 
       // Filter by selected month if provided
       let filteredPhotos = photosWithInfo;
       if (selectedYear !== undefined && selectedMonth !== undefined) {
+        console.log(`📅 Filtering for year ${selectedYear}, month ${selectedMonth}`);
         filteredPhotos = photosWithInfo.filter(photo => {
           const photoDate = new Date(photo.creationTime);
           return photoDate.getFullYear() === selectedYear && 
                  photoDate.getMonth() === selectedMonth;
         });
+        console.log(`✅ ${filteredPhotos.length} photos match the selected month`);
+      }
+
+      if (filteredPhotos.length === 0 && selectedYear !== undefined) {
+        console.log('⚠️ No photos in selected month');
+        Alert.alert(
+          'No Photos in This Month',
+          'There are no photos from the selected month. Try a different month!',
+          [{ text: 'OK', onPress: () => onBack() }]
+        );
+        setLoading(false);
+        setIsLoadingMore(false);
+        return;
       }
 
       if (loadMore) {
@@ -184,13 +244,18 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
         setPhotos(filteredPhotos);
       }
 
+      console.log(`✅ Photos loaded successfully. Total: ${filteredPhotos.length}`);
       setEndCursor(album.endCursor);
       setHasMorePhotos(album.hasNextPage);
       setLoading(false);
       setIsLoadingMore(false);
     } catch (error) {
-      console.error('Error loading photos:', error);
-      Alert.alert('Error', 'Failed to load photos');
+      console.error('❌ Error loading photos:', error);
+      Alert.alert(
+        'Error Loading Photos',
+        `Failed to load photos: ${error.message}\n\nPlease make sure you've granted photo permissions.`,
+        [{ text: 'OK', onPress: () => setLoading(false) }]
+      );
       setLoading(false);
       setIsLoadingMore(false);
     }
