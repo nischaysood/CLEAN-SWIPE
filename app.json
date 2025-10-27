@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "CleanSwipe",
-    "slug": "clean-swipe",
+    "name": "SwipeWipe",
+    "slug": "swipewipe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

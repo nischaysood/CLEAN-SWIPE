@@ -17,7 +17,7 @@ const CARD_WIDTH = SCREEN_WIDTH * 0.9;
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.6;
 const SWIPE_THRESHOLD = 120;
 
-export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight }) {
+export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const [imageLoading, setImageLoading] = useState(true);
@@ -51,16 +51,24 @@ export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight }) {
     onEnd: (event) => {
       const shouldSwipeLeft = translateX.value < -SWIPE_THRESHOLD;
       const shouldSwipeRight = translateX.value > SWIPE_THRESHOLD;
+      const shouldSwipeUp = translateY.value < -SWIPE_THRESHOLD;
 
-      if (shouldSwipeLeft) {
+      if (shouldSwipeUp) {
+        // Swipe UP = Favorite
+        translateY.value = withTiming(-SCREEN_HEIGHT * 1.5, { duration: 300 });
+        runOnJS(onSwipeUp)();
+      } else if (shouldSwipeLeft) {
+        // Swipe LEFT = Delete
         translateX.value = withTiming(-SCREEN_WIDTH * 1.5, { duration: 300 });
         translateY.value = withTiming(translateY.value + 100, { duration: 300 });
         runOnJS(onSwipeLeft)();
       } else if (shouldSwipeRight) {
+        // Swipe RIGHT = Keep
         translateX.value = withTiming(SCREEN_WIDTH * 1.5, { duration: 300 });
         translateY.value = withTiming(translateY.value + 100, { duration: 300 });
         runOnJS(onSwipeRight)();
       } else {
+        // Reset if not enough swipe distance
         translateX.value = withSpring(0, {
           damping: 15,
           stiffness: 150,
@@ -120,6 +128,17 @@ export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight }) {
     return { opacity };
   });
 
+  const animatedFavoriteStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateY.value,
+      [-SWIPE_THRESHOLD, -50, 0],
+      [1, 0.5, 0],
+      Extrapolate.CLAMP
+    );
+
+    return { opacity };
+  });
+
   return (
     <View style={styles.container}>
       <PanGestureHandler onGestureEvent={gestureHandler}>
@@ -170,6 +189,12 @@ export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight }) {
           <Animated.View style={[styles.overlay, styles.keepOverlay, animatedKeepStyle]}>
             <View style={[styles.labelContainer, styles.keepLabelContainer]}>
               <Text style={styles.labelText}>KEEP</Text>
+            </View>
+          </Animated.View>
+
+          <Animated.View style={[styles.overlay, styles.favoriteOverlay, animatedFavoriteStyle]}>
+            <View style={[styles.labelContainer, styles.favoriteLabelContainer]}>
+              <Text style={styles.labelText}>❤️ FAVORITE</Text>
             </View>
           </Animated.View>
 
@@ -258,6 +283,9 @@ const styles = StyleSheet.create({
   keepOverlay: {
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
   },
+  favoriteOverlay: {
+    backgroundColor: 'rgba(255, 107, 129, 0.3)',
+  },
   labelContainer: {
     borderWidth: 4,
     borderColor: '#FF5252',
@@ -269,6 +297,10 @@ const styles = StyleSheet.create({
   keepLabelContainer: {
     borderColor: '#4CAF50',
     transform: [{ rotate: '15deg' }],
+  },
+  favoriteLabelContainer: {
+    borderColor: '#FF6B81',
+    transform: [{ rotate: '0deg' }],
   },
   labelText: {
     color: '#FFFFFF',

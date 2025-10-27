@@ -20,8 +20,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
   const [photos, setPhotos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [deletedCount, setDeletedCount] = useState(0);
+  const [keptCount, setKeptCount] = useState(0);
+  const [favoritedCount, setFavoritedCount] = useState(0);
   const [deletedPhotos, setDeletedPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastAction, setLastAction] = useState(null); // For undo: {type, photo, index}
+  const [undoTimeout, setUndoTimeout] = useState(null);
   const [swipeCount, setSwipeCount] = useState(0);
   const [isPro, setIsPro] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
