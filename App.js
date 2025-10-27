@@ -9,7 +9,8 @@ import PurchaseService from './src/services/PurchaseService';
 export default function App() {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
-  const [showGallery, setShowGallery] = useState(false);
+  // Start with gallery directly - skip month selector for speed!
+  const [showGallery, setShowGallery] = useState(true);
 
   // Initialize RevenueCat on app start
   useEffect(() => {

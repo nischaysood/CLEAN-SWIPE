@@ -177,83 +177,92 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
 
   const loadPhotos = async (loadMore = false) => {
     try {
-      console.log('📷 Loading photos... loadMore:', loadMore);
+      console.log('⚡ Loading batch... loadMore:', loadMore);
       
-      if (!loadMore) {
-        setLoading(true);
+      // Don't show loading screen - just load in background!
+      if (!loadMore && photos.length === 0) {
+        setLoading(true); // Only show loading if NO photos yet
       } else {
         setIsLoadingMore(true);
       }
 
-      console.log('📂 Fetching assets from MediaLibrary...');
+      // TINY BATCHES for 10k+ photos - only 5 at a time!
+      const batchSize = 5;
+      
       const album = await MediaLibrary.getAssetsAsync({
         mediaType: 'photo',
         sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-        first: loadMore ? 20 : 5, // Load only 5 initially - SUPER FAST!
+        first: batchSize,
         after: loadMore ? endCursor : undefined,
       });
 
-      console.log(`✅ Found ${album.assets.length} photos, hasNextPage: ${album.hasNextPage}`);
+      console.log(`✅ Loaded ${album.assets.length} photos`);
 
-      if (album.assets.length === 0) {
-        console.log('⚠️ No photos found on device');
+      if (album.assets.length === 0 && !loadMore) {
         Alert.alert(
-          'No Photos Found',
-          'There are no photos in your gallery. Add some photos and try again!',
+          'No Photos',
+          'No photos found in your gallery!',
           [{ text: 'OK', onPress: () => setLoading(false) }]
         );
         setLoading(false);
-        setIsLoadingMore(false);
         return;
       }
 
-      console.log('⚡ Using photos directly - NO SLOW LOADING!');
-      // Skip the slow getAssetInfoAsync - just use URIs directly!
-      const photosWithInfo = album.assets.map(asset => ({
-        ...asset,
-        localUri: asset.uri, // Use URI directly - much faster!
-      }));
-
-      // Filter by selected month if provided
-      let filteredPhotos = photosWithInfo;
+      // Use assets directly - no processing!
+      let filteredPhotos = album.assets;
+      
+      // Filter by month if selected
       if (selectedYear !== undefined && selectedMonth !== undefined) {
-        console.log(`📅 Filtering for year ${selectedYear}, month ${selectedMonth}`);
-        filteredPhotos = photosWithInfo.filter(photo => {
+        filteredPhotos = album.assets.filter(photo => {
           const photoDate = new Date(photo.creationTime);
           return photoDate.getFullYear() === selectedYear && 
                  photoDate.getMonth() === selectedMonth;
         });
-        console.log(`✅ ${filteredPhotos.length} photos match the selected month`);
+        
+        // If no matches in this batch, keep loading more
+        if (filteredPhotos.length === 0 && album.hasNextPage) {
+          setEndCursor(album.endCursor);
+          setHasMorePhotos(album.hasNextPage);
+          setLoading(false);
+          setIsLoadingMore(false);
+          // Auto-load next batch
+          setTimeout(() => loadPhotos(true), 100);
+          return;
+        }
+        
+        if (filteredPhotos.length === 0 && !album.hasNextPage) {
+          Alert.alert(
+            'No Photos Found',
+            `No photos in ${new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.`,
+            [{ text: 'OK', onPress: () => onBack() }]
+          );
+          setLoading(false);
+          return;
+        }
       }
 
-      if (filteredPhotos.length === 0 && selectedYear !== undefined) {
-        console.log('⚠️ No photos in selected month');
-        Alert.alert(
-          'No Photos in This Month',
-          'There are no photos from the selected month. Try a different month!',
-          [{ text: 'OK', onPress: () => onBack() }]
-        );
-        setLoading(false);
-        setIsLoadingMore(false);
-        return;
-      }
-
+      // Add to existing photos (progressive loading!)
       if (loadMore) {
-        setPhotos([...photos, ...filteredPhotos]);
+        setPhotos(prev => [...prev, ...filteredPhotos]);
       } else {
         setPhotos(filteredPhotos);
       }
 
-      console.log(`✅ Photos loaded successfully. Total: ${filteredPhotos.length}`);
       setEndCursor(album.endCursor);
       setHasMorePhotos(album.hasNextPage);
       setLoading(false);
       setIsLoadingMore(false);
+      
+      // If we have photos and more available, preload next batch
+      if (filteredPhotos.length > 0 && album.hasNextPage && photos.length < 20) {
+        console.log('🔄 Preloading next batch...');
+        setTimeout(() => loadPhotos(true), 200);
+      }
     } catch (error) {
-      console.error('❌ Error loading photos:', error);
+      console.error('❌ Error:', error);
       Alert.alert(
-        'Error Loading Photos',
-        `Failed to load photos: ${error.message}\n\nPlease make sure you've granted photo permissions.`,
+        'Error',
+        `Can't load photos: ${error.message}`,
         [{ text: 'OK', onPress: () => setLoading(false) }]
       );
       setLoading(false);
@@ -329,13 +338,15 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
   };
 
   const checkAndLoadMore = async () => {
-    // Load more photos when user is 10 photos away from the end
-    const threshold = 10;
+    // Aggressive loading for first 20 photos, then relax
+    const threshold = photos.length < 20 ? 3 : 10;
+    
     if (
       hasMorePhotos &&
       !isLoadingMore &&
       currentIndex >= photos.length - threshold
     ) {
+      console.log('🔄 Auto-loading more photos...');
       await loadPhotos(true);
     }
   };
