@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.nischaysood.cleanswipe",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
@@ -46,7 +46,7 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow CleanSwipe to access your photos.",
+          "photosPermission": "Allow CleanSwipe to access and delete your photos to help clean up your gallery.",
           "savePhotosPermission": "Allow CleanSwipe to save photos.",
           "isAccessMediaLocationEnabled": true
         }

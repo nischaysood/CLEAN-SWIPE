@@ -286,10 +286,31 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
 
     const photoToDelete = photos[currentIndex];
     try {
+      console.log('🗑️ Attempting to delete photo:', photoToDelete.id);
+      
+      // Check if we have delete permission
+      const { granted } = await MediaLibrary.getPermissionsAsync();
+      console.log('📱 Current permission status:', granted);
+      
+      if (!granted) {
+        console.log('⚠️ No permission, requesting...');
+        const { granted: newGranted } = await MediaLibrary.requestPermissionsAsync();
+        if (!newGranted) {
+          Alert.alert(
+            'Permission Required',
+            'CleanSwipe needs permission to delete photos. Please enable in Settings.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+      }
+
       // On iOS: moves to Recently Deleted (30 days)
-      // On Android 11+: moves to Trash (30 days)
-      // On older Android: permanently deletes (user should be warned)
+      // On Android 11+: moves to Trash (30 days)  
+      // On older Android: permanently deletes
+      console.log('🗑️ Deleting asset...');
       await MediaLibrary.deleteAssetsAsync([photoToDelete.id]);
+      console.log('✅ Photo deleted successfully!');
       
       // Remove photo from array
       const updatedPhotos = [...photos];
@@ -304,22 +325,19 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
       // Load more photos if getting close to the end
       await checkAndLoadMore();
     } catch (error) {
-      console.error('Error deleting photo:', error);
+      console.error('❌ Error deleting photo:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
       
-      // Check if it's a permission error (common in Expo Go)
-      if (error.message && error.message.includes('PHPhotosErrorDomain')) {
-        Alert.alert(
-          'Permission Issue',
-          'Expo Go has limited photo deletion access. Please use a development build for full functionality.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert(
-          'Error',
-          'Failed to delete photo. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
+      // User-friendly error message
+      Alert.alert(
+        'Unable to Delete Photo',
+        `Could not delete this photo.\n\nError: ${error.message || 'Unknown error'}\n\nTry skipping it instead (swipe right).`,
+        [
+          { text: 'Skip Photo', onPress: () => handleSkip() },
+          { text: 'Try Again', onPress: () => handleDelete() },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
     }
   };
 
