@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
-export default function BottomActions({ onDelete, onSkip }) {
+export default function BottomActions({ onDelete, onKeep, onFavorite }) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -15,12 +15,21 @@ export default function BottomActions({ onDelete, onSkip }) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.skipButton]}
-          onPress={onSkip}
+          style={[styles.button, styles.favoriteButton]}
+          onPress={onFavorite}
           activeOpacity={0.7}
         >
-          <Text style={styles.buttonIcon}>⏭️</Text>
-          <Text style={styles.buttonText}>Skip</Text>
+          <Text style={styles.buttonIcon}>❤️</Text>
+          <Text style={styles.buttonText}>Favorite</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.keepButton]}
+          onPress={onKeep}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.buttonIcon}>✅</Text>
+          <Text style={styles.buttonText}>Keep</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -51,8 +60,11 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: '#FF5252',
   },
-  skipButton: {
-    backgroundColor: '#555555',
+  favoriteButton: {
+    backgroundColor: '#FF6B81',
+  },
+  keepButton: {
+    backgroundColor: '#4CAF50',
   },
   buttonIcon: {
     fontSize: 20,

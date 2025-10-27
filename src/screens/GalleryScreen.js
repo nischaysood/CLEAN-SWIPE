@@ -335,9 +335,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
       // User-friendly error message
       Alert.alert(
         'Unable to Delete Photo',
-        `Could not delete this photo.\n\nError: ${error.message || 'Unknown error'}\n\nTry skipping it instead (swipe right).`,
+        `Could not delete this photo.\n\nError: ${error.message || 'Unknown error'}\n\nTry keeping it instead (swipe right).`,
         [
-          { text: 'Skip Photo', onPress: () => handleSkip() },
+          { text: 'Keep Photo', onPress: () => handleKeep() },
           { text: 'Try Again', onPress: () => handleDelete() },
           { text: 'Cancel', style: 'cancel' }
         ]
@@ -345,18 +345,102 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
     }
   };
 
-  const handleSkip = async () => {
+  const handleKeep = async () => {
     // Check if user has reached free limit
     if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
       setShowPaywall(true);
       return;
     }
 
+    if (currentIndex >= photos.length) return;
+
+    const currentPhoto = photos[currentIndex];
+    
+    // Clear any existing undo timeout
+    if (undoTimeout) {
+      clearTimeout(undoTimeout);
+    }
+
+    // Set last action for undo (3 seconds)
+    setLastAction({
+      type: 'keep',
+      photo: currentPhoto,
+      index: currentIndex
+    });
+
+    // Auto-clear undo after 3 seconds
+    const timeout = setTimeout(() => {
+      setLastAction(null);
+    }, 3000);
+    setUndoTimeout(timeout);
+
+    setKeptCount(keptCount + 1);
     setCurrentIndex(currentIndex + 1);
     await incrementSwipeCount();
 
     // Load more photos if getting close to the end
     await checkAndLoadMore();
+  };
+
+  const handleFavorite = async () => {
+    // Check if user has reached free limit
+    if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
+      setShowPaywall(true);
+      return;
+    }
+
+    if (currentIndex >= photos.length) return;
+
+    const currentPhoto = photos[currentIndex];
+    
+    try {
+      // Add to favorites album
+      console.log('❤️ Adding to favorites:', currentPhoto.id);
+      
+      // Create or get favorites album
+      const albums = await MediaLibrary.getAlbumsAsync();
+      let favoritesAlbum = albums.find(album => album.title === 'Favorites');
+      
+      if (!favoritesAlbum) {
+        favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
+      }
+
+      console.log('✅ Added to favorites!');
+
+      // Clear any existing undo timeout
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+      }
+
+      // Set last action for undo
+      setLastAction({
+        type: 'favorite',
+        photo: currentPhoto,
+        index: currentIndex
+      });
+
+      // Auto-clear undo after 3 seconds
+      const timeout = setTimeout(() => {
+        setLastAction(null);
+      }, 3000);
+      setUndoTimeout(timeout);
+
+      setFavoritedCount(favoritedCount + 1);
+      setCurrentIndex(currentIndex + 1);
+      await incrementSwipeCount();
+
+      // Load more photos if getting close to the end
+      await checkAndLoadMore();
+    } catch (error) {
+      console.error('❌ Error adding to favorites:', error);
+      Alert.alert(
+        'Unable to Favorite',
+        `Could not add to favorites: ${error.message}`,
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const checkAndLoadMore = async () => {
@@ -482,7 +566,8 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
             key={currentPhoto.id}
             photo={currentPhoto}
             onSwipeLeft={handleDelete}
-            onSwipeRight={handleSkip}
+            onSwipeRight={handleKeep}
+            onSwipeUp={handleFavorite}
           />
         )}
         
@@ -493,7 +578,11 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
         )}
       </View>
 
-      <BottomActions onDelete={handleDelete} onSkip={handleSkip} />
+      <BottomActions 
+        onDelete={handleDelete} 
+        onKeep={handleKeep}
+        onFavorite={handleFavorite}
+      />
     </View>
   );
 }
