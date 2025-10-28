@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Alert, Dimensions, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
+import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TopPanel from '../components/TopPanel';
 import SwipeCard from '../components/SwipeCard';
@@ -9,6 +10,13 @@ import PaywallScreen from '../components/PaywallScreen';
 import PurchaseService from '../services/PurchaseService';
 
 const { height } = Dimensions.get('window');
+
+// Disable console logs in production
+if (!__DEV__) {
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+}
 
 const FREE_SWIPES_LIMIT = 50;
 const SWIPE_COUNT_KEY = '@CleanSwipe:swipeCount';
@@ -284,7 +292,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     // Check if user has reached free limit
     if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
       setShowPaywall(true);
@@ -353,9 +361,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
         ]
       );
     }
-  };
+  }, [isPro, swipeCount, currentIndex, photos, hasSeenDeleteInfo]);
 
-  const handleKeep = async () => {
+  const handleKeep = useCallback(async () => {
     // Check if user has reached free limit
     if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
       setShowPaywall(true);

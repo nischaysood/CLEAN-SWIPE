@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Image, StyleSheet, Dimensions, Text, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, StyleSheet, Dimensions, Text, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedGestureHandler,
@@ -17,25 +18,23 @@ const CARD_WIDTH = SCREEN_WIDTH * 0.9;
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.6;
 const SWIPE_THRESHOLD = 120;
 
-export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
+function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   // Reset animation values when photo changes
   useEffect(() => {
     translateX.value = 0;
     translateY.value = 0;
-    setImageLoading(true);
     setImageError(false);
   }, [photo.id]);
 
-  // Get the correct image URI - simplified for Android
-  const getImageUri = () => {
-    // Just use the URI directly
-    return photo.uri;
-  };
+  // Memoize handlers for performance
+  const handleLoadError = useCallback(() => {
+    if (__DEV__) console.error('Image load error for:', photo.id);
+    setImageError(true);
+  }, [photo.id]);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx) => {
@@ -141,30 +140,18 @@ export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp 
     <View style={styles.container}>
       <PanGestureHandler onGestureEvent={gestureHandler}>
         <Animated.View style={[styles.card, animatedCardStyle]}>
-          {/* Image with loading and error handling */}
+          {/* Optimized Image with expo-image */}
           <Image
-            source={{ uri: getImageUri() }}
+            source={{ uri: photo.uri }}
             style={styles.image}
-            resizeMode="cover"
-            onLoadStart={() => setImageLoading(true)}
-            onLoad={() => {
-              setImageLoading(false);
-              setImageError(false);
-            }}
-            onError={(error) => {
-              console.error('❌ Image load error:', error.nativeEvent.error);
-              setImageLoading(false);
-              setImageError(true);
-            }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+            priority="high"
+            onError={handleLoadError}
+            placeholder={require('../../assets/placeholder.png')}
+            placeholderContentFit="cover"
           />
-
-          {/* Loading indicator */}
-          {imageLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#4CAF50" />
-              <Text style={styles.loadingText}>Loading photo...</Text>
-            </View>
-          )}
 
           {/* Error message */}
           {imageError && (
@@ -213,21 +200,20 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: '#1A1A1A',
+    // Simplified shadows for Android performance
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
     overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#1A1A1A',
   },
   loadingContainer: {
     position: 'absolute',
@@ -315,4 +301,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+});
+
+// Memoize component to prevent unnecessary re-renders
+export default React.memo(SwipeCard, (prevProps, nextProps) => {
+  // Only re-render if photo ID changes
+  return prevProps.photo.id === nextProps.photo.id;
 });
