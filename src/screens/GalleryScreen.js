@@ -181,7 +181,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
 
   const loadPhotos = async (loadMore = false) => {
     try {
-      console.log('⚡ Loading batch... loadMore:', loadMore);
+      if (!loadMore) {
+        console.log('⚡ Initial load...');
+      }
       
       // Don't show loading screen - just load in background!
       if (!loadMore && photos.length === 0) {
@@ -200,7 +202,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
         after: loadMore ? endCursor : undefined,
       });
 
-      console.log(`✅ Loaded ${album.assets.length} photos`);
+      if (!loadMore) {
+        console.log(`✅ Loaded ${album.assets.length} photos`);
+      }
 
       if (album.assets.length === 0 && !loadMore) {
         Alert.alert(
@@ -257,10 +261,16 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
       setLoading(false);
       setIsLoadingMore(false);
       
-      // If we have photos and more available, preload next batch
-      if (filteredPhotos.length > 0 && album.hasNextPage && photos.length < 20) {
-        console.log('🔄 Preloading next batch...');
-        setTimeout(() => loadPhotos(true), 200);
+      // Only preload if we don't have enough photos yet (check AFTER state update)
+      const totalPhotosAfterUpdate = loadMore ? photos.length + filteredPhotos.length : filteredPhotos.length;
+      if (!loadMore && filteredPhotos.length > 0 && album.hasNextPage && totalPhotosAfterUpdate < 20) {
+        console.log('🔄 Preloading next batch... (total photos:', totalPhotosAfterUpdate, ')');
+        // Use a flag to prevent multiple simultaneous preloads
+        setTimeout(() => {
+          if (totalPhotosAfterUpdate < 20 && album.hasNextPage) {
+            loadPhotos(true);
+          }
+        }, 300);
       }
     } catch (error) {
       console.error('❌ Error:', error);

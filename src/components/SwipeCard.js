@@ -34,9 +34,7 @@ export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp 
   // Get the correct image URI - simplified for Android
   const getImageUri = () => {
     // Just use the URI directly
-    const uri = photo.uri;
-    console.log('📸 Image URI:', uri);
-    return uri;
+    return photo.uri;
   };
 
   const gestureHandler = useAnimatedGestureHandler({
@@ -148,12 +146,8 @@ export default function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp 
             source={{ uri: getImageUri() }}
             style={styles.image}
             resizeMode="cover"
-            onLoadStart={() => {
-              console.log('🔄 Image loading started');
-              setImageLoading(true);
-            }}
+            onLoadStart={() => setImageLoading(true)}
             onLoad={() => {
-              console.log('✅ Image loaded successfully');
               setImageLoading(false);
               setImageError(false);
             }}
