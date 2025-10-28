@@ -398,9 +398,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
 
     // Load more photos if getting close to the end
     await checkAndLoadMore();
-  };
+  }, [isPro, swipeCount, currentIndex, photos, keptCount, undoTimeout, lastAction]);
 
-  const handleFavorite = async () => {
+  const handleFavorite = useCallback(async () => {
     // Check if user has reached free limit
     if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
       setShowPaywall(true);
@@ -459,7 +459,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
         [{ text: 'OK' }]
       );
     }
-  };
+  }, [isPro, swipeCount, currentIndex, photos, favoritedCount, undoTimeout, lastAction]);
 
   const checkAndLoadMore = async () => {
     // Aggressive loading for first 20 photos, then relax
