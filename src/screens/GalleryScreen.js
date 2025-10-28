@@ -588,11 +588,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
           />
         )}
         
-        {isLoadingMore && (
-          <View style={styles.loadingMoreContainer}>
-            <Text style={styles.loadingMoreText}>Loading more photos...</Text>
-          </View>
-        )}
+        {/* Silent background loading - no UI indicator */}
       </View>
 
       <BottomActions 
