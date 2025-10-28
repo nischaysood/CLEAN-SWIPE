@@ -22,7 +22,7 @@ const SWIPE_COUNT_KEY = '@CleanSwipe:swipeCount';
 const IS_PRO_KEY = '@CleanSwipe:isPro';
 const HAS_SEEN_DELETE_INFO_KEY = '@CleanSwipe:hasSeenDeleteInfo';
 
-export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
+export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onPhotoDeleted, onViewDeleted, deletedPhotosCount }) {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -326,12 +326,11 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
         }
       }
 
-      // On iOS: moves to Recently Deleted (30 days)
-      // On Android 11+: moves to Trash (30 days)  
-      // On older Android: permanently deletes
-      console.log('🗑️ Deleting asset...');
-      await MediaLibrary.deleteAssetsAsync([photoToDelete.id]);
-      console.log('✅ Photo deleted successfully!');
+      // Mark photo as deleted (moved to app's recycle bin)
+      // NOT actually deleting from device yet - user can review later
+      console.log('🗑️ Moving photo to recycle bin...');
+      photoToDelete.deletedAt = new Date().toISOString();
+      console.log('✅ Photo moved to recycle bin!');
       
       // Clear any existing undo timeout
       if (undoTimeout) {
@@ -358,6 +357,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
       
       setDeletedPhotos([...deletedPhotos, { ...photoToDelete, index: currentIndex }]);
       setDeletedCount(deletedCount + 1);
+      
+      // Notify parent app about deleted photo
+      if (onPhotoDeleted) {
+        onPhotoDeleted(photoToDelete);
+      }
+      
       // Don't increment index since we removed the item - next photo is now at current index
       await incrementSwipeCount();
 
@@ -595,12 +600,13 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
   return (
     <View style={styles.container}>
       <TopPanel 
-        deletedCount={deletedCount} 
+        deletedCount={deletedPhotosCount || deletedCount} 
         onUndo={handleUndo} 
         canUndo={lastAction !== null}
         swipesRemaining={remainingSwipes}
         isPro={isPro}
         onBack={onBack}
+        onViewDeleted={onViewDeleted}
       />
       
       <View style={styles.cardContainer}>

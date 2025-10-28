@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
-export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro, onBack }) {
+export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro, onBack, onViewDeleted }) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -16,10 +16,14 @@ export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemainin
         )}
         
         <View style={styles.leftSection}>
-          <View style={styles.counterContainer}>
-            <Text style={styles.counterLabel}>Deleted</Text>
+          <TouchableOpacity
+            style={styles.counterContainer}
+            onPress={onViewDeleted}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.counterLabel}>🗑️ Deleted</Text>
             <Text style={styles.counterValue}>{deletedCount}</Text>
-          </View>
+          </TouchableOpacity>
           
           {swipesRemaining !== undefined && (
             <View style={styles.swipesContainer}>
