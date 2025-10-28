@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
+import { View, Image, StyleSheet, Dimensions, Text, ActivityIndicator } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedGestureHandler,
@@ -140,17 +139,12 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
     <View style={styles.container}>
       <PanGestureHandler onGestureEvent={gestureHandler}>
         <Animated.View style={[styles.card, animatedCardStyle]}>
-          {/* Optimized Image with expo-image */}
+          {/* Optimized Image */}
           <Image
             source={{ uri: photo.uri }}
             style={styles.image}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={200}
-            priority="high"
+            resizeMode="cover"
             onError={handleLoadError}
-            placeholder={require('../../assets/placeholder.png')}
-            placeholderContentFit="cover"
           />
 
           {/* Error message */}

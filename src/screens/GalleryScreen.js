@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Alert, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
-import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TopPanel from '../components/TopPanel';
 import SwipeCard from '../components/SwipeCard';
