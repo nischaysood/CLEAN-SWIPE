@@ -333,6 +333,24 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
       await MediaLibrary.deleteAssetsAsync([photoToDelete.id]);
       console.log('✅ Photo deleted successfully!');
       
+      // Clear any existing undo timeout
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+      }
+
+      // Set last action for undo (3 seconds)
+      setLastAction({
+        type: 'delete',
+        photo: photoToDelete,
+        index: currentIndex
+      });
+
+      // Auto-clear undo after 3 seconds
+      const timeout = setTimeout(() => {
+        setLastAction(null);
+      }, 3000);
+      setUndoTimeout(timeout);
+
       // Remove photo from array
       const updatedPhotos = [...photos];
       updatedPhotos.splice(currentIndex, 1);
@@ -474,37 +492,45 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
     }
   };
 
-  const handleUndo = async () => {
-    if (deletedPhotos.length === 0) return;
+  const handleUndo = useCallback(async () => {
+    if (!lastAction) return;
 
-    const lastDeleted = deletedPhotos[deletedPhotos.length - 1];
-    
-    // Remove from deletedPhotos array
-    const updatedDeletedPhotos = [...deletedPhotos];
-    updatedDeletedPhotos.pop();
-    setDeletedPhotos(updatedDeletedPhotos);
-    
-    // Decrease deleted count
-    setDeletedCount(deletedCount - 1);
-    
-    // Re-insert photo back into the photos array
+    // Clear the undo timeout
+    if (undoTimeout) {
+      clearTimeout(undoTimeout);
+      setUndoTimeout(null);
+    }
+
+    const { type, photo, index } = lastAction;
+
+    // Insert photo back at its original position
     const updatedPhotos = [...photos];
-    // Insert before the current index so it becomes the current photo
-    const insertPosition = Math.max(0, currentIndex - 1);
-    updatedPhotos.splice(insertPosition, 0, lastDeleted);
+    updatedPhotos.splice(index, 0, photo);
     setPhotos(updatedPhotos);
     
-    // Set index to show the restored photo
-    setCurrentIndex(insertPosition);
-    
-    // Note: The photo is already in "Recently Deleted" on the device
-    // We can't un-delete it from there, but we restore it in the app's flow
-    Alert.alert(
-      'Photo Restored',
-      'Photo has been restored to your swipe queue!\n\nNote: It\'s still in "Recently Deleted" on your device. You can recover it permanently from the Photos app.',
-      [{ text: 'OK' }]
-    );
-  };
+    // Move back to the restored photo
+    setCurrentIndex(index);
+
+    // Undo the count based on action type
+    if (type === 'delete') {
+      setDeletedCount(prev => Math.max(0, prev - 1));
+      
+      // Note: Photo is in Recently Deleted, can't un-delete from device
+      Alert.alert(
+        '↶ Undone',
+        'Photo restored to swipe queue.\n\nNote: It\'s still in "Recently Deleted". Recover it from Photos app.',
+        [{ text: 'OK' }]
+      );
+    } else if (type === 'keep') {
+      setKeptCount(prev => Math.max(0, prev - 1));
+    } else if (type === 'favorite') {
+      setFavoritedCount(prev => Math.max(0, prev - 1));
+      // TODO: Remove from favorites album if needed
+    }
+
+    // Clear last action
+    setLastAction(null);
+  }, [lastAction, undoTimeout, photos, deletedCount, keptCount, favoritedCount]);
 
   const handleUpgrade = async () => {
     // TODO: Implement actual payment integration (Stripe, RevenueCat, etc.)
@@ -571,7 +597,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack }) {
       <TopPanel 
         deletedCount={deletedCount} 
         onUndo={handleUndo} 
-        canUndo={deletedPhotos.length > 0}
+        canUndo={lastAction !== null}
         swipesRemaining={remainingSwipes}
         isPro={isPro}
         onBack={onBack}
