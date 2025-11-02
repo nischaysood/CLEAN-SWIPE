@@ -187,6 +187,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   };
 
   const loadPhotos = async (loadMore = false) => {
+    // Check if we're filtering by month (used throughout function)
+    const isFilteringByMonth = selectedYear !== undefined && selectedMonth !== undefined;
+    
     try {
       if (!loadMore) {
         console.log('⚡ Initial load...');
@@ -199,8 +202,10 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         setIsLoadingMore(true);
       }
 
-      // TINY BATCHES for 10k+ photos - only 5 at a time!
-      const batchSize = 5;
+      // Smart batch sizing:
+      // - If filtering by month: larger batches (50) to find matches faster
+      // - If showing all: tiny batches (5) for speed
+      const batchSize = isFilteringByMonth ? 50 : 5;
       
       const album = await MediaLibrary.getAssetsAsync({
         mediaType: 'photo',
@@ -234,18 +239,35 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
                  photoDate.getMonth() === selectedMonth;
         });
         
-        // If no matches in this batch, keep loading more
+        console.log(`📅 Month filter: Found ${filteredPhotos.length} photos for ${selectedYear}-${selectedMonth + 1}`);
+        
+        // If no matches in this batch AND we have existing photos, keep loading more silently
         if (filteredPhotos.length === 0 && album.hasNextPage) {
           setEndCursor(album.endCursor);
           setHasMorePhotos(album.hasNextPage);
-          setLoading(false);
-          setIsLoadingMore(false);
-          // Auto-load next batch
-          setTimeout(() => loadPhotos(true), 100);
+          
+          // Keep loading state active if we have NO photos yet
+          if (photos.length === 0) {
+            // Keep loading spinner active
+          } else {
+            setLoading(false);
+            setIsLoadingMore(false);
+          }
+          
+          // Auto-load next batch immediately
+          console.log('🔄 No matches in batch, loading next...');
+          setTimeout(() => loadPhotos(true), 50);
           return;
         }
         
-        if (filteredPhotos.length === 0 && !album.hasNextPage) {
+        // If we have some matches but less than 20, keep loading more
+        const currentTotal = loadMore ? photos.length + filteredPhotos.length : filteredPhotos.length;
+        if (filteredPhotos.length > 0 && currentTotal < 20 && album.hasNextPage) {
+          console.log(`🔄 Found ${filteredPhotos.length}, need more. Total: ${currentTotal}`);
+        }
+        
+        // Only show "no photos" if we've searched everything
+        if (filteredPhotos.length === 0 && !album.hasNextPage && photos.length === 0) {
           Alert.alert(
             'No Photos Found',
             `No photos in ${new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.`,
@@ -268,16 +290,19 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       setLoading(false);
       setIsLoadingMore(false);
       
-      // Only preload if we don't have enough photos yet (check AFTER state update)
+      // Smart preloading based on context
       const totalPhotosAfterUpdate = loadMore ? photos.length + filteredPhotos.length : filteredPhotos.length;
-      if (!loadMore && filteredPhotos.length > 0 && album.hasNextPage && totalPhotosAfterUpdate < 20) {
-        console.log('🔄 Preloading next batch... (total photos:', totalPhotosAfterUpdate, ')');
-        // Use a flag to prevent multiple simultaneous preloads
+      
+      // When filtering by month, be more aggressive with preloading
+      const targetPhotoCount = isFilteringByMonth ? 30 : 20;
+      
+      if (filteredPhotos.length > 0 && album.hasNextPage && totalPhotosAfterUpdate < targetPhotoCount) {
+        console.log('🔄 Preloading next batch... (total photos:', totalPhotosAfterUpdate, 'target:', targetPhotoCount, ')');
         setTimeout(() => {
-          if (totalPhotosAfterUpdate < 20 && album.hasNextPage) {
+          if (totalPhotosAfterUpdate < targetPhotoCount && album.hasNextPage) {
             loadPhotos(true);
           }
-        }, 300);
+        }, isFilteringByMonth ? 100 : 300);
       }
     } catch (error) {
       console.error('❌ Error:', error);
