@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,6 +40,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const [endCursor, setEndCursor] = useState(null);
   const [hasMorePhotos, setHasMorePhotos] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadAttemptsRef = useRef(0); // Track loading attempts to prevent infinite loops
 
   useEffect(() => {
     initializeApp();
@@ -190,6 +191,20 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     // Check if we're filtering by month (used throughout function)
     const isFilteringByMonth = selectedYear !== undefined && selectedMonth !== undefined;
     
+    // Safety check: prevent infinite loops
+    if (loadMore) {
+      loadAttemptsRef.current += 1;
+      if (loadAttemptsRef.current > 100) {
+        console.error('⚠️ Too many load attempts, stopping to prevent infinite loop');
+        setLoading(false);
+        setIsLoadingMore(false);
+        Alert.alert('Loading Error', 'Too many load attempts. Please restart the app.');
+        return;
+      }
+    } else {
+      loadAttemptsRef.current = 0; // Reset on initial load
+    }
+    
     try {
       if (!loadMore) {
         console.log('⚡ Initial load...');
@@ -290,19 +305,16 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       setLoading(false);
       setIsLoadingMore(false);
       
-      // Smart preloading based on context
-      const totalPhotosAfterUpdate = loadMore ? photos.length + filteredPhotos.length : filteredPhotos.length;
-      
-      // When filtering by month, be more aggressive with preloading
-      const targetPhotoCount = isFilteringByMonth ? 30 : 20;
-      
-      if (filteredPhotos.length > 0 && album.hasNextPage && totalPhotosAfterUpdate < targetPhotoCount) {
-        console.log('🔄 Preloading next batch... (total photos:', totalPhotosAfterUpdate, 'target:', targetPhotoCount, ')');
-        setTimeout(() => {
-          if (totalPhotosAfterUpdate < targetPhotoCount && album.hasNextPage) {
+      // Only preload on INITIAL load (not when loadMore=true)
+      if (!loadMore && filteredPhotos.length > 0 && album.hasNextPage) {
+        const targetPhotoCount = isFilteringByMonth ? 30 : 20;
+        
+        if (filteredPhotos.length < targetPhotoCount) {
+          console.log('🔄 Preloading next batch... (current:', filteredPhotos.length, 'target:', targetPhotoCount, ')');
+          setTimeout(() => {
             loadPhotos(true);
-          }
-        }, isFilteringByMonth ? 100 : 300);
+          }, isFilteringByMonth ? 100 : 300);
+        }
       }
     } catch (error) {
       console.error('❌ Error:', error);
