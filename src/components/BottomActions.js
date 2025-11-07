@@ -40,22 +40,27 @@ const styles = StyleSheet.create({
   container: {
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     paddingTop: 20,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     backgroundColor: '#000000',
   },
   content: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 16,
+    justifyContent: 'space-between',
+    gap: 12,
   },
   button: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 18,
+    borderRadius: 20,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   deleteButton: {
     backgroundColor: '#FF5252',
@@ -67,11 +72,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
   },
   buttonIcon: {
-    fontSize: 20,
+    fontSize: 22,
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

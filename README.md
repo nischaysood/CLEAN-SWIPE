@@ -27,7 +27,17 @@ A fun, Tinder-style mobile app to help you declutter your photo gallery. Swipe l
 - Expo CLI
 - iOS Simulator (for iOS) or Android Emulator (for Android)
 
-### Installation
+### Quick Start (Recommended)
+
+Use our interactive quick start script:
+
+```bash
+./quick-start.sh
+```
+
+This will guide you through setup and get you testing in under 2 minutes!
+
+### Manual Installation
 
 1. **Install dependencies**:
    ```bash
@@ -50,6 +60,14 @@ A fun, Tinder-style mobile app to help you declutter your photo gallery. Swipe l
    ```bash
    npm run android
    ```
+
+### Testing Tools
+
+We've included helpful testing scripts:
+
+- `./quick-start.sh` - Get started immediately
+- `./test-app.sh` - Interactive testing menu
+- See `TESTING_GUIDE.md` for comprehensive testing instructions
 
 ### Important: Development Build Required
 
@@ -98,22 +116,35 @@ clean-swipe/
 └── babel.config.js
 ```
 
+## ✨ Recent Improvements
+
+**Performance & Polish Update** - See `IMPROVEMENTS.md` for full details
+
+- 🚀 **2-3x faster image loading** with expo-image and caching
+- ⚡ **Smoother animations** (250ms, improved spring physics)
+- 🎨 **Enhanced UI** with better shadows, spacing, and typography
+- 📦 **Optimized batch loading** for better performance
+- 🧪 **Testing tools** included (quick-start.sh, test-app.sh)
+- 📚 **Comprehensive guides** for testing and development
+
 ## 🎨 Design Specs
 
 - **Background**: `#000000` (Pure black)
 - **Delete Color**: `#FF5252` (Red)
-- **Skip Color**: `#555555` (Gray)
-- **Undo Color**: `#4CAF50` (Green)
+- **Keep Color**: `#4CAF50` (Green)
+- **Favorite Color**: `#FF6B81` (Pink)
 - **Text**: `#FFFFFF` (White)
 
 ## 📦 Tech Stack
 
-- **Framework**: React Native with Expo SDK 52
+- **Framework**: React Native with Expo SDK 54
 - **Language**: JavaScript (ES6+)
 - **Libraries**:
   - `expo-media-library` - Photo gallery access
+  - `expo-image` - High-performance image loading with caching
   - `react-native-gesture-handler` - Swipe gesture detection
-  - `react-native-reanimated` - Smooth animations
+  - `react-native-reanimated` - Smooth 60fps animations
+  - `react-native-purchases` - In-app purchases (RevenueCat)
 
 ## 🔒 Permissions
 

@@ -24,8 +24,9 @@ class PurchaseService {
   async initialize() {
     // Check if native module is available
     if (!Purchases) {
-      console.warn('⚠️ RevenueCat not available - native module needs rebuild');
-      console.warn('Run: eas build --profile development --platform ios');
+      if (__DEV__) {
+        console.warn('⚠️ RevenueCat not available - native module needs rebuild');
+      }
       return;
     }
 
@@ -34,15 +35,29 @@ class PurchaseService {
         ? REVENUECAT_API_KEY_IOS 
         : REVENUECAT_API_KEY_ANDROID;
 
+      // Skip if using placeholder keys
+      if (apiKey.includes('YOUR_') || apiKey.includes('_KEY_HERE')) {
+        if (__DEV__) {
+          console.log('⚠️ RevenueCat: Using placeholder API keys, skipping initialization');
+        }
+        return;
+      }
+
       await Purchases.configure({ apiKey });
       this.initialized = true;
-      console.log('✅ RevenueCat initialized successfully');
+      if (__DEV__) {
+        console.log('✅ RevenueCat initialized successfully');
+      }
       
       // Check initial subscription status
       const customerInfo = await Purchases.getCustomerInfo();
-      console.log('Customer info:', customerInfo.entitlements.active);
+      if (__DEV__) {
+        console.log('Customer info:', customerInfo.entitlements.active);
+      }
     } catch (error) {
-      console.error('❌ Error initializing RevenueCat:', error);
+      if (__DEV__) {
+        console.warn('⚠️ RevenueCat initialization failed (app will work without payments)');
+      }
       // Don't throw - app should still work without payments
     }
   }

@@ -14,40 +14,56 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
     try {
       setLoading(true);
       
-      // Get all photos
-      const album = await MediaLibrary.getAssetsAsync({
-        mediaType: 'photo',
-        sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-        first: 10000, // Get all photos
-      });
-
-      // Group photos by month
+      // Fast loading: Get photos in batches and process incrementally
       const monthMap = {};
+      let hasMore = true;
+      let endCursor = null;
+      const batchSize = 200; // Process 200 at a time for speed
       
-      for (const asset of album.assets) {
-        const date = new Date(asset.creationTime);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        const monthName = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-        
-        if (!monthMap[monthKey]) {
-          monthMap[monthKey] = {
-            key: monthKey,
-            name: monthName,
-            year: date.getFullYear(),
-            month: date.getMonth(),
-            count: 0,
-            firstPhoto: asset,
-          };
+      console.log('📅 Loading all months from gallery...');
+      
+      while (hasMore) {
+        const album = await MediaLibrary.getAssetsAsync({
+          mediaType: 'photo',
+          sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+          first: batchSize,
+          after: endCursor,
+        });
+
+        // Process this batch
+        for (const asset of album.assets) {
+          const date = new Date(asset.creationTime);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          
+          if (!monthMap[monthKey]) {
+            const monthName = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+            monthMap[monthKey] = {
+              key: monthKey,
+              name: monthName,
+              year: date.getFullYear(),
+              month: date.getMonth(),
+              count: 0,
+              firstPhoto: asset,
+            };
+          }
+          monthMap[monthKey].count++;
         }
-        monthMap[monthKey].count++;
+
+        // Update UI with current progress (show months as we find them)
+        const monthsArray = Object.values(monthMap).sort((a, b) => {
+          return b.key.localeCompare(a.key);
+        });
+        setMonthsData(monthsArray);
+
+        hasMore = album.hasNextPage;
+        endCursor = album.endCursor;
+        
+        // Keep going until we've processed ALL photos
+        if (!hasMore) {
+          console.log(`✅ Found ${Object.keys(monthMap).length} months with photos`);
+        }
       }
 
-      // Convert to array and sort by date (newest first)
-      const monthsArray = Object.values(monthMap).sort((a, b) => {
-        return b.key.localeCompare(a.key);
-      });
-
-      setMonthsData(monthsArray);
       setLoading(false);
     } catch (error) {
       console.error('Error loading photos by month:', error);
@@ -71,12 +87,14 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (loading && monthsData.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
+          <Text style={styles.loadingEmoji}>📅</Text>
           <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.loadingText}>Loading your gallery...</Text>
+          <Text style={styles.loadingText}>Organizing your photos...</Text>
+          <Text style={styles.loadingSubtext}>This will only take a moment</Text>
         </View>
       </View>
     );
@@ -100,7 +118,7 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Select Month</Text>
-        <Text style={styles.subtitle}>Choose which month's photos to clean up</Text>
+        <Text style={styles.subtitle}>Choose which photos to clean up</Text>
       </View>
 
       <FlatList
@@ -109,6 +127,19 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
         keyExtractor={(item) => item.key}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <TouchableOpacity
+            style={[styles.monthCard, styles.allPhotosCard]}
+            onPress={() => onSelectMonth(undefined, undefined)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.monthInfo}>
+              <Text style={styles.monthName}>🚀 All Photos</Text>
+              <Text style={styles.photoCount}>Clean up your entire gallery</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
+        }
       />
     </View>
   );
@@ -149,6 +180,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A2A2A',
   },
+  allPhotosCard: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+    marginBottom: 20,
+  },
   monthInfo: {
     flex: 1,
   },
@@ -171,11 +207,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingEmoji: {
+    fontSize: 80,
+    marginBottom: 20,
   },
   loadingText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '700',
     marginTop: 16,
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    color: '#AAAAAA',
+    fontSize: 16,
+    textAlign: 'center',
   },
   emptyContainer: {
     flex: 1,

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Platform, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TopPanel from '../components/TopPanel';
@@ -7,8 +7,6 @@ import SwipeCard from '../components/SwipeCard';
 import BottomActions from '../components/BottomActions';
 import PaywallScreen from '../components/PaywallScreen';
 import PurchaseService from '../services/PurchaseService';
-
-const { height } = Dimensions.get('window');
 
 // Disable console logs in production
 if (!__DEV__) {
@@ -191,23 +189,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     // Check if we're filtering by month (used throughout function)
     const isFilteringByMonth = selectedYear !== undefined && selectedMonth !== undefined;
     
-    // Safety check: prevent infinite loops
-    if (loadMore) {
-      loadAttemptsRef.current += 1;
-      if (loadAttemptsRef.current > 100) {
-        console.error('⚠️ Too many load attempts, stopping to prevent infinite loop');
-        setLoading(false);
-        setIsLoadingMore(false);
-        Alert.alert('Loading Error', 'Too many load attempts. Please restart the app.');
-        return;
-      }
-    } else {
-      loadAttemptsRef.current = 0; // Reset on initial load
-    }
-    
     try {
       if (!loadMore) {
         console.log('⚡ Initial load...');
+        if (isFilteringByMonth) {
+          console.log(`📅 Loading photos for ${selectedYear}-${selectedMonth + 1}`);
+        }
       }
       
       // Don't show loading screen - just load in background!
@@ -217,87 +204,59 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         setIsLoadingMore(true);
       }
 
-      // Smart batch sizing:
-      // - If filtering by month: larger batches (50) to find matches faster
-      // - If showing all: tiny batches (5) for speed
-      const batchSize = isFilteringByMonth ? 50 : 5;
+      // SMART LOADING: If filtering by month, use date range for INSTANT results!
+      let album;
       
-      const album = await MediaLibrary.getAssetsAsync({
-        mediaType: 'photo',
-        sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-        first: batchSize,
-        after: loadMore ? endCursor : undefined,
-      });
-
-      if (!loadMore) {
-        console.log(`✅ Loaded ${album.assets.length} photos`);
+      if (isFilteringByMonth && !loadMore) {
+        // Calculate date range for the selected month
+        const startOfMonth = new Date(selectedYear, selectedMonth, 1);
+        const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+        
+        console.log(`📅 Using date range: ${startOfMonth.toISOString()} to ${endOfMonth.toISOString()}`);
+        
+        // Load photos directly from this date range - INSTANT!
+        album = await MediaLibrary.getAssetsAsync({
+          mediaType: 'photo',
+          sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+          createdAfter: startOfMonth.getTime(),
+          createdBefore: endOfMonth.getTime(),
+          first: 100, // Get up to 100 photos from this month
+        });
+        
+        console.log(`✅ Found ${album.assets.length} photos in ${selectedYear}-${selectedMonth + 1}`);
+      } else {
+        // Regular loading for "All Photos" or pagination
+        const batchSize = 10;
+        
+        album = await MediaLibrary.getAssetsAsync({
+          mediaType: 'photo',
+          sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+          first: batchSize,
+          after: loadMore ? endCursor : undefined,
+        });
       }
 
       if (album.assets.length === 0 && !loadMore) {
+        const monthName = isFilteringByMonth 
+          ? new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          : '';
+        
         Alert.alert(
-          'No Photos',
-          'No photos found in your gallery!',
-          [{ text: 'OK', onPress: () => setLoading(false) }]
+          'No Photos Found',
+          isFilteringByMonth 
+            ? `No photos found in ${monthName}.`
+            : 'No photos found in your gallery!',
+          [{ text: 'OK', onPress: () => isFilteringByMonth ? onBack() : setLoading(false) }]
         );
         setLoading(false);
         return;
       }
 
-      // Use assets directly - no processing!
-      let filteredPhotos = album.assets;
-      
-      // Filter by month if selected
-      if (selectedYear !== undefined && selectedMonth !== undefined) {
-        filteredPhotos = album.assets.filter(photo => {
-          const photoDate = new Date(photo.creationTime);
-          return photoDate.getFullYear() === selectedYear && 
-                 photoDate.getMonth() === selectedMonth;
-        });
-        
-        console.log(`📅 Month filter: Found ${filteredPhotos.length} photos for ${selectedYear}-${selectedMonth + 1}`);
-        
-        // If no matches in this batch AND we have existing photos, keep loading more silently
-        if (filteredPhotos.length === 0 && album.hasNextPage) {
-          setEndCursor(album.endCursor);
-          setHasMorePhotos(album.hasNextPage);
-          
-          // Keep loading state active if we have NO photos yet
-          if (photos.length === 0) {
-            // Keep loading spinner active
-          } else {
-            setLoading(false);
-            setIsLoadingMore(false);
-          }
-          
-          // Auto-load next batch immediately
-          console.log('🔄 No matches in batch, loading next...');
-          setTimeout(() => loadPhotos(true), 50);
-          return;
-        }
-        
-        // If we have some matches but less than 20, keep loading more
-        const currentTotal = loadMore ? photos.length + filteredPhotos.length : filteredPhotos.length;
-        if (filteredPhotos.length > 0 && currentTotal < 20 && album.hasNextPage) {
-          console.log(`🔄 Found ${filteredPhotos.length}, need more. Total: ${currentTotal}`);
-        }
-        
-        // Only show "no photos" if we've searched everything
-        if (filteredPhotos.length === 0 && !album.hasNextPage && photos.length === 0) {
-          Alert.alert(
-            'No Photos Found',
-            `No photos in ${new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.`,
-            [{ text: 'OK', onPress: () => onBack() }]
-          );
-          setLoading(false);
-          return;
-        }
-      }
-
       // Add to existing photos (progressive loading!)
       if (loadMore) {
-        setPhotos(prev => [...prev, ...filteredPhotos]);
+        setPhotos(prev => [...prev, ...album.assets]);
       } else {
-        setPhotos(filteredPhotos);
+        setPhotos(album.assets);
       }
 
       setEndCursor(album.endCursor);
@@ -305,15 +264,11 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       setLoading(false);
       setIsLoadingMore(false);
       
-      // Only preload on INITIAL load (not when loadMore=true)
-      if (!loadMore && filteredPhotos.length > 0 && album.hasNextPage) {
-        const targetPhotoCount = isFilteringByMonth ? 30 : 20;
-        
-        if (filteredPhotos.length < targetPhotoCount) {
-          console.log('🔄 Preloading next batch... (current:', filteredPhotos.length, 'target:', targetPhotoCount, ')');
-          setTimeout(() => {
-            loadPhotos(true);
-          }, isFilteringByMonth ? 100 : 300);
+      // Preload more photos if needed
+      if (!loadMore && album.assets.length > 0 && album.hasNextPage && !isFilteringByMonth) {
+        if (album.assets.length < 20) {
+          console.log('🔄 Preloading next batch...');
+          setTimeout(() => loadPhotos(true), 300);
         }
       }
     } catch (error) {
@@ -604,10 +559,21 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const currentPhoto = photos[currentIndex];
 
   if (loading) {
+    const isSearchingMonth = selectedYear !== undefined && selectedMonth !== undefined;
+    const monthName = isSearchingMonth 
+      ? new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : '';
+    
     return (
       <View style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.loadingText}>Loading your photos...</Text>
+          <Text style={styles.loadingEmoji}>📸</Text>
+          <Text style={styles.loadingText}>
+            {isSearchingMonth ? `Finding photos from ${monthName}...` : 'Loading your photos...'}
+          </Text>
+          <Text style={styles.loadingSubtext}>
+            {isSearchingMonth ? 'Searching through your gallery' : 'This may take a moment'}
+          </Text>
         </View>
       </View>
     );
@@ -685,10 +651,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
+  loadingEmoji: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
   loadingText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    color: '#AAAAAA',
+    fontSize: 16,
   },
   loadingMoreContainer: {
     position: 'absolute',

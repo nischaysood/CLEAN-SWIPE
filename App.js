@@ -8,10 +8,10 @@ import DeletedPhotosScreen from './src/screens/DeletedPhotosScreen';
 import PurchaseService from './src/services/PurchaseService';
 
 export default function App() {
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(null);
-  // Start with gallery directly - skip month selector for speed!
-  const [showGallery, setShowGallery] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(undefined);
+  const [selectedYear, setSelectedYear] = useState(undefined);
+  // Start with month selector
+  const [showGallery, setShowGallery] = useState(false);
   const [showDeletedPhotos, setShowDeletedPhotos] = useState(false);
   const [deletedPhotos, setDeletedPhotos] = useState([]);
 
@@ -28,8 +28,8 @@ export default function App() {
 
   const handleBackToMonthSelector = () => {
     setShowGallery(false);
-    setSelectedYear(null);
-    setSelectedMonth(null);
+    setSelectedYear(undefined);
+    setSelectedMonth(undefined);
   };
 
   const handleViewDeletedPhotos = () => {

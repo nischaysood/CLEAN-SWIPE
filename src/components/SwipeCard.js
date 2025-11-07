@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Image, StyleSheet, Dimensions, Text, ActivityIndicator } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import { Image } from 'expo-image';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -14,8 +14,8 @@ import Animated, {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.9;
-const CARD_HEIGHT = SCREEN_HEIGHT * 0.6;
-const SWIPE_THRESHOLD = 120;
+const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
+const SWIPE_THRESHOLD = 100;
 
 function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
   const translateX = useSharedValue(0);
@@ -35,47 +35,38 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
     setImageError(true);
   }, [photo.id]);
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx) => {
-      ctx.startX = translateX.value;
-      ctx.startY = translateY.value;
-    },
-    onActive: (event, ctx) => {
-      translateX.value = ctx.startX + event.translationX;
-      translateY.value = ctx.startY + event.translationY;
-    },
-    onEnd: (event) => {
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      translateX.value = event.translationX;
+      translateY.value = event.translationY;
+    })
+    .onEnd(() => {
       const shouldSwipeLeft = translateX.value < -SWIPE_THRESHOLD;
       const shouldSwipeRight = translateX.value > SWIPE_THRESHOLD;
       const shouldSwipeUp = translateY.value < -SWIPE_THRESHOLD;
 
       if (shouldSwipeUp) {
-        // Swipe UP = Favorite
-        translateY.value = withTiming(-SCREEN_HEIGHT * 1.5, { duration: 300 });
+        translateY.value = withTiming(-SCREEN_HEIGHT * 1.5, { duration: 250 });
         runOnJS(onSwipeUp)();
       } else if (shouldSwipeLeft) {
-        // Swipe LEFT = Delete
-        translateX.value = withTiming(-SCREEN_WIDTH * 1.5, { duration: 300 });
-        translateY.value = withTiming(translateY.value + 100, { duration: 300 });
+        translateX.value = withTiming(-SCREEN_WIDTH * 1.5, { duration: 250 });
+        translateY.value = withTiming(translateY.value + 50, { duration: 250 });
         runOnJS(onSwipeLeft)();
       } else if (shouldSwipeRight) {
-        // Swipe RIGHT = Keep
-        translateX.value = withTiming(SCREEN_WIDTH * 1.5, { duration: 300 });
-        translateY.value = withTiming(translateY.value + 100, { duration: 300 });
+        translateX.value = withTiming(SCREEN_WIDTH * 1.5, { duration: 250 });
+        translateY.value = withTiming(translateY.value + 50, { duration: 250 });
         runOnJS(onSwipeRight)();
       } else {
-        // Reset if not enough swipe distance
         translateX.value = withSpring(0, {
-          damping: 15,
-          stiffness: 150,
+          damping: 20,
+          stiffness: 200,
         });
         translateY.value = withSpring(0, {
-          damping: 15,
-          stiffness: 150,
+          damping: 20,
+          stiffness: 200,
         });
       }
-    },
-  });
+    });
 
   const animatedCardStyle = useAnimatedStyle(() => {
     const rotation = interpolate(
@@ -137,14 +128,17 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
 
   return (
     <View style={styles.container}>
-      <PanGestureHandler onGestureEvent={gestureHandler}>
+      <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.card, animatedCardStyle]}>
-          {/* Optimized Image */}
+          {/* Optimized Image with expo-image for better performance */}
           <Image
             source={{ uri: photo.uri }}
             style={styles.image}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={200}
             onError={handleLoadError}
+            priority="high"
+            cachePolicy="memory-disk"
           />
 
           {/* Error message */}
@@ -179,7 +173,7 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
             </Text>
           </View>
         </Animated.View>
-      </PanGestureHandler>
+      </GestureDetector>
     </View>
   );
 }
@@ -194,14 +188,13 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: '#1A1A1A',
-    // Simplified shadows for Android performance
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
     overflow: 'hidden',
   },
   image: {
