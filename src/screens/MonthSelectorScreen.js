@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { BlurView } from 'expo-blur';
 import * as MediaLibrary from 'expo-media-library';
 
 export default function MonthSelectorScreen({ onSelectMonth }) {
@@ -80,18 +79,17 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
 
   const renderMonthItem = ({ item }) => (
     <TouchableOpacity
+      style={styles.monthCard}
       onPress={() => onSelectMonth(item.year, item.month)}
       activeOpacity={0.7}
     >
-      <BlurView intensity={60} tint="dark" style={styles.monthCard}>
-        <View style={styles.monthInfo}>
-          <Text style={styles.monthName}>{item.name}</Text>
-          <Text style={styles.photoCount}>
-            {item.count} {item.count === 1 ? 'item' : 'items'}
-          </Text>
-        </View>
-        <Text style={styles.arrow}>›</Text>
-      </BlurView>
+      <View style={styles.monthInfo}>
+        <Text style={styles.monthName}>{item.name}</Text>
+        <Text style={styles.photoCount}>
+          {item.count} {item.count === 1 ? 'item' : 'items'}
+        </Text>
+      </View>
+      <Text style={styles.arrow}>›</Text>
     </TouchableOpacity>
   );
 
@@ -137,16 +135,15 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <TouchableOpacity
+            style={[styles.monthCard, styles.allPhotosCard]}
             onPress={() => onSelectMonth(undefined, undefined)}
             activeOpacity={0.7}
           >
-            <BlurView intensity={80} tint="light" style={[styles.monthCard, styles.allPhotosCard]}>
-              <View style={styles.monthInfo}>
-                <Text style={styles.monthName}>🚀 All Photos</Text>
-                <Text style={styles.photoCount}>Clean up your entire gallery</Text>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </BlurView>
+            <View style={styles.monthInfo}>
+              <Text style={styles.monthName}>🚀 All Photos</Text>
+              <Text style={styles.photoCount}>Clean up your entire gallery</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
         }
       />
@@ -181,31 +178,17 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   monthCard: {
-    backgroundColor: 'rgba(26, 26, 26, 0.7)',
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 14,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-    overflow: 'hidden',
   },
   allPhotosCard: {
-    backgroundColor: 'rgba(76, 175, 80, 0.3)',
-    borderColor: 'rgba(102, 187, 106, 0.5)',
-    marginBottom: 24,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    backgroundColor: '#4CAF50',
+    marginBottom: 20,
   },
   monthInfo: {
     flex: 1,

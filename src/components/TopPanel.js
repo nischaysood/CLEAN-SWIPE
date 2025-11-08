@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
 
 export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro, onBack, onViewDeleted }) {
   return (
-    <BlurView intensity={80} tint="dark" style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.content}>
         {onBack && (
           <TouchableOpacity
@@ -46,7 +45,7 @@ export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemainin
           </Text>
         </TouchableOpacity>
       </View>
-    </BlurView>
+    </View>
   );
 }
 
@@ -55,9 +54,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 16,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#000000',
   },
   content: {
     flexDirection: 'row',

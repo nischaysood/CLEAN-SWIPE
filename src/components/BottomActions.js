@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
 
 export default function BottomActions({ onDelete, onKeep, onFavorite }) {
   return (
-    <BlurView intensity={80} tint="dark" style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.content}>
         <TouchableOpacity
           style={[styles.button, styles.deleteButton]}
@@ -33,18 +32,16 @@ export default function BottomActions({ onDelete, onKeep, onFavorite }) {
           <Text style={styles.buttonText}>Keep</Text>
         </TouchableOpacity>
       </View>
-    </BlurView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingTop: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#000000',
   },
   content: {
     flexDirection: 'row',

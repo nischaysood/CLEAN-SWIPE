@@ -764,14 +764,14 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         {/* Silent background loading - no UI indicator */}
       </View>
 
-      {/* Banner Ad - only show for free users */}
-      {!isPro && <BannerAdComponent style={styles.bannerAd} />}
-
       <BottomActions 
         onDelete={handleDelete} 
         onKeep={handleKeep}
         onFavorite={handleFavorite}
       />
+      
+      {/* Banner Ad - only show for free users */}
+      {!isPro && <BannerAdComponent style={styles.bannerAd} />}
 
       {/* Custom Alert */}
       <CustomAlert
@@ -852,6 +852,9 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   bannerAd: {
-    marginBottom: 8,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });
