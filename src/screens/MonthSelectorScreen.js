@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
+import ProfileScreen from './ProfileScreen';
 
 export default function MonthSelectorScreen({ onSelectMonth }) {
   const [loading, setLoading] = useState(true);
   const [monthsData, setMonthsData] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     loadPhotosByMonth();
@@ -120,10 +122,28 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
     );
   }
 
+  if (showProfile) {
+    return (
+      <ProfileScreen 
+        onClose={() => setShowProfile(false)}
+        onSubscribe={() => setShowProfile(false)}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Select Month</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.title}>Select Month</Text>
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => setShowProfile(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.profileIcon}>👤</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.subtitle}>Choose which photos to clean up</Text>
       </View>
 
@@ -161,12 +181,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 28,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   title: {
     color: '#FFFFFF',
     fontSize: 36,
     fontWeight: '800',
-    marginBottom: 8,
     letterSpacing: -0.5,
+  },
+  profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileIcon: {
+    fontSize: 24,
   },
   subtitle: {
     color: '#999999',

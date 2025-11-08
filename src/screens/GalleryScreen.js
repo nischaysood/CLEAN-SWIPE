@@ -6,7 +6,6 @@ import TopPanel from '../components/TopPanel';
 import SwipeCard from '../components/SwipeCard';
 import BottomActions from '../components/BottomActions';
 import PaywallScreen from '../components/PaywallScreen';
-import ProfileScreen from '../screens/ProfileScreen';
 import BannerAdComponent from '../components/BannerAdComponent';
 import CustomAlert from '../components/CustomAlert';
 import PurchaseService from '../services/PurchaseService';
@@ -41,7 +40,6 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const [bonusSwipes, setBonusSwipes] = useState(0);
   const [isPro, setIsPro] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [hasSeenDeleteInfo, setHasSeenDeleteInfo] = useState(false);
   const [endCursor, setEndCursor] = useState(null);
   const [hasMorePhotos, setHasMorePhotos] = useState(true);
@@ -706,19 +704,6 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     );
   }
 
-  // Show profile screen
-  if (showProfile) {
-    return (
-      <ProfileScreen 
-        onClose={() => setShowProfile(false)}
-        onSubscribe={async () => {
-          await loadProStatus();
-          setShowProfile(false);
-        }}
-      />
-    );
-  }
-
   // Show paywall if limit reached
   if (showPaywall) {
     return <PaywallScreen swipesUsed={swipeCount} onUpgrade={handleUpgrade} />;
@@ -763,7 +748,6 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         isPro={isPro}
         onBack={onBack}
         onViewDeleted={onViewDeleted}
-        onOpenProfile={() => setShowProfile(true)}
       />
       
       <View style={styles.cardContainer}>
