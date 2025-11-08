@@ -1,218 +1,87 @@
-# 📸 CleanSwipe
+# 🗑️ CleanSwipe - Photo & Video Gallery Cleaner
 
-A fun, Tinder-style mobile app to help you declutter your photo gallery. Swipe left to delete, right to keep!
+Clean your photo and video gallery with simple swipe gestures!
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+
+# Build for phone
+./build-for-phone.sh
+```
 
 ## ✨ Features
 
-- 🎯 **Swipe Interface**: Tinder-style swipe gestures for quick photo decisions
-- ⚡ **Smooth Animations**: Physics-based animations using React Native Reanimated
-- 📱 **Offline-First**: Works completely offline, no backend required
-- 🗑️ **Safe Deletion**: Photos go to Recently Deleted/Trash (30-day recovery) - see [SAFE_DELETION.md](SAFE_DELETION.md)
-- 🔄 **Delete & Skip**: Easy controls to delete or skip photos
-- 📊 **Track Progress**: Real-time counter of deleted photos
-- 🔁 **Infinite Scrolling**: Photos load automatically as you swipe (handles thousands of photos)
-- 📅 **Month Selector**: Browse and clean photos by month
-- ↶ **Working Undo**: Restore accidentally deleted photos
-- 🎨 **Dark Theme**: Beautiful dark UI optimized for photo viewing
-- 📲 **Cross-Platform**: Works on both iOS and Android
-- 💎 **Freemium Model**: 50 free swipes, upgrade for unlimited (see [FREE_TIER.md](FREE_TIER.md))
-- 💳 **Payment Ready**: Complete guides for iOS App Store & Android Play Store monetization
+- 👈 **Swipe Left** to delete
+- 👉 **Swipe Right** to keep
+- 👆 **Swipe Up** to favorite
+- ↶ **Unlimited Undo**
+- 📅 **Browse by Month**
+- 🎬 **Photos & Videos Support**
+- 🔒 **100% Private** - photos never leave your device
 
-## 🚀 Getting Started
+## 📱 Testing on Phone
 
-### Prerequisites
+See [PHONE_TESTING_GUIDE.md](docs/PHONE_TESTING_GUIDE.md)
 
-- Node.js 18+
-- npm or yarn
-- Expo CLI
-- iOS Simulator (for iOS) or Android Emulator (for Android)
+## 💰 Monetization
 
-### Quick Start (Recommended)
+- 50 free swipes
+- Watch video ad for 20 bonus swipes
+- $2.99/month for unlimited
 
-Use our interactive quick start script:
+See [MONETIZATION_GUIDE.md](docs/MONETIZATION_GUIDE.md)
 
-```bash
-./quick-start.sh
-```
+## 📈 Play Store Launch
 
-This will guide you through setup and get you testing in under 2 minutes!
+See [PLAYSTORE_OPTIMIZATION_GUIDE.md](docs/PLAYSTORE_OPTIMIZATION_GUIDE.md)
 
-### Manual Installation
+## 🎬 Video Support
 
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+See [VIDEO_SUPPORT_ADDED.md](docs/VIDEO_SUPPORT_ADDED.md)
 
-2. **Start the development server**:
-   ```bash
-   npm start
-   ```
+## 📚 Documentation
 
-3. **Run on device**:
-   
-   For iOS:
-   ```bash
-   npm run ios
-   ```
-   
-   For Android:
-   ```bash
-   npm run android
-   ```
+- [Play Store Optimization](docs/PLAYSTORE_OPTIMIZATION_GUIDE.md) - Get organic downloads
+- [Monetization Guide](docs/MONETIZATION_GUIDE.md) - Ads & subscriptions
+- [Phone Testing](docs/PHONE_TESTING_GUIDE.md) - Test on real device
+- [Video Support](docs/VIDEO_SUPPORT_ADDED.md) - How video features work
+- [Ads Implementation](docs/ADS_IMPLEMENTATION_SUMMARY.md) - AdMob setup
 
-### Testing Tools
+## 🛠️ Tech Stack
 
-We've included helpful testing scripts:
+- React Native (Expo)
+- expo-media-library
+- expo-av (video player)
+- expo-blur (glassmorphism)
+- react-native-google-mobile-ads
+- react-native-reanimated
 
-- `./quick-start.sh` - Get started immediately
-- `./test-app.sh` - Interactive testing menu
-- See `TESTING_GUIDE.md` for comprehensive testing instructions
-
-### Important: Development Build Required
-
-⚠️ **Note**: This app requires a development build to access the full photo library. Expo Go has limited media library access.
-
-To create a development build:
-
-```bash
-# Install EAS CLI
-npm install -g eas-cli
-
-# Configure your project
-eas build:configure
-
-# Build for iOS
-eas build --platform ios --profile development
-
-# Build for Android
-eas build --platform android --profile development
-```
-
-## 🎮 How to Use
-
-1. **Launch the app** - Grant photo library permissions when prompted
-2. **Swipe left** to delete a photo or **swipe right** to keep it
-3. **Tap Delete (❌)** button to delete without swiping
-4. **Tap Skip (⏭️)** button to keep without swiping
-5. **Track your progress** with the deleted counter at the top
-6. **Undo feature** (coming soon in v2) - temporary recycle bin
-
-## 🏗️ Project Structure
+## 📦 Project Structure
 
 ```
 clean-swipe/
-├── App.js                      # Main app entry point
 ├── src/
-│   ├── screens/
-│   │   └── GalleryScreen.js   # Main gallery screen with photo logic
-│   └── components/
-│       ├── TopPanel.js        # Header with counter and undo button
-│       ├── SwipeCard.js       # Animated swipeable photo card
-│       └── BottomActions.js   # Footer with delete/skip buttons
-├── assets/                     # App icons and splash screens
-├── package.json
-├── app.json                    # Expo configuration
-└── babel.config.js
+│   ├── components/     # UI components
+│   ├── screens/        # App screens
+│   └── services/       # Business logic
+├── docs/              # Documentation
+├── scripts/           # Build scripts
+├── README.md          # This file
+└── START_HERE.md      # First-time setup
 ```
 
-## ✨ Recent Improvements
+## 🎯 Getting Started
 
-**Performance & Polish Update** - See `IMPROVEMENTS.md` for full details
+1. Read [START_HERE.md](START_HERE.md)
+2. Run `./quick-start.sh`
+3. Start building!
 
-- 🚀 **2-3x faster image loading** with expo-image and caching
-- ⚡ **Smoother animations** (250ms, improved spring physics)
-- 🎨 **Enhanced UI** with better shadows, spacing, and typography
-- 📦 **Optimized batch loading** for better performance
-- 🧪 **Testing tools** included (quick-start.sh, test-app.sh)
-- 📚 **Comprehensive guides** for testing and development
+## 📄 License
 
-## 🎨 Design Specs
-
-- **Background**: `#000000` (Pure black)
-- **Delete Color**: `#FF5252` (Red)
-- **Keep Color**: `#4CAF50` (Green)
-- **Favorite Color**: `#FF6B81` (Pink)
-- **Text**: `#FFFFFF` (White)
-
-## 📦 Tech Stack
-
-- **Framework**: React Native with Expo SDK 54
-- **Language**: JavaScript (ES6+)
-- **Libraries**:
-  - `expo-media-library` - Photo gallery access
-  - `expo-image` - High-performance image loading with caching
-  - `react-native-gesture-handler` - Swipe gesture detection
-  - `react-native-reanimated` - Smooth 60fps animations
-  - `react-native-purchases` - In-app purchases (RevenueCat)
-
-## 🔒 Permissions
-
-The app requires the following permissions:
-
-- **iOS**: Photo Library Access (`NSPhotoLibraryUsageDescription`)
-- **Android**: 
-  - `READ_EXTERNAL_STORAGE`
-  - `WRITE_EXTERNAL_STORAGE`
-  - `READ_MEDIA_IMAGES`
-
-## 🛠️ Development Roadmap
-
-### Phase 1 - MVP ✅
-- [x] Vertical layout with header, photo, footer
-- [x] Swipe gestures and animations
-- [x] Delete, skip functionality
-- [x] Deleted photo counter
-
-### Phase 2 - Polish (Coming Soon)
-- [ ] Improved undo with temporary recycle bin
-- [ ] Better card stacking effect
-- [ ] Enhanced transitions
-- [ ] Haptic feedback
-
-### Phase 3 - Smart Cleanup
-- [ ] Duplicate photo detection
-- [ ] Blurry photo detection
-- [ ] Screenshot cleanup suggestions
-- [ ] Batch operations
-
-### Phase 4 - Cloud Integration
-- [ ] Google Photos integration
-- [ ] iCloud sync
-- [ ] Backup before delete
-
-## ⚠️ Known Limitations
-
-- **Undo**: Currently shows a notice that photos are permanently deleted. Future versions will include a temporary recycle bin before permanent deletion.
-- **Performance**: Loading large photo libraries (1000+ photos) may take time on initial load.
-- **Permissions**: Expo Go has limited media library access. Use a development build for full functionality.
-
-## 🐛 Troubleshooting
-
-### iOS Issues
-
-**Problem**: Can't see photos or getting `ph://` URI errors
-
-**Solution**: The app automatically converts iOS photo URIs using `MediaLibrary.getAssetInfoAsync()`. Make sure you're using a development build, not Expo Go.
-
-### Android Issues
-
-**Problem**: Permission denied errors
-
-**Solution**: Make sure to grant storage permissions when prompted. You may need to go to Settings > Apps > CleanSwipe > Permissions to manually enable them.
-
-## 📝 License
-
-MIT License - feel free to use this project for your own purposes!
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📧 Support
-
-If you encounter any issues or have questions, please open an issue on GitHub.
-
----
-
-Made with ❤️ for people with messy photo galleries
+Private project - All rights reserved
