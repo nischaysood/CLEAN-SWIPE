@@ -25,7 +25,7 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
       
       while (hasMore) {
         const album = await MediaLibrary.getAssetsAsync({
-          mediaType: 'photo',
+          mediaType: ['photo', 'video'],
           sortBy: [[MediaLibrary.SortBy.creationTime, false]],
           first: batchSize,
           after: endCursor,
@@ -87,7 +87,7 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
         <View style={styles.monthInfo}>
           <Text style={styles.monthName}>{item.name}</Text>
           <Text style={styles.photoCount}>
-            {item.count} {item.count === 1 ? 'photo' : 'photos'}
+            {item.count} {item.count === 1 ? 'item' : 'items'}
           </Text>
         </View>
         <Text style={styles.arrow}>›</Text>
@@ -126,7 +126,7 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Select Month</Text>
-        <Text style={styles.subtitle}>Choose which photos to clean up</Text>
+        <Text style={styles.subtitle}>Choose which photos & videos to clean up</Text>
       </View>
 
       <FlatList

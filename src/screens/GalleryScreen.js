@@ -297,9 +297,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
           console.log(`📅 Using date range: ${startOfMonth.toISOString()} to ${endOfMonth.toISOString()}`);
         }
         
-        // Load ALL photos from this month using pagination
+        // Load ALL photos and videos from this month using pagination
         album = await MediaLibrary.getAssetsAsync({
-          mediaType: 'photo',
+          mediaType: ['photo', 'video'],
           sortBy: [[MediaLibrary.SortBy.creationTime, false]],
           createdAfter: startOfMonth.getTime(),
           createdBefore: endOfMonth.getTime(),
@@ -315,7 +315,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         const batchSize = 10;
         
         album = await MediaLibrary.getAssetsAsync({
-          mediaType: 'photo',
+          mediaType: ['photo', 'video'],
           sortBy: [[MediaLibrary.SortBy.creationTime, false]],
           first: batchSize,
           after: loadMore ? endCursor : undefined,
@@ -334,10 +334,10 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
           : '';
         
         Alert.alert(
-          'No Photos Found',
+          'No Media Found',
           isFilteringByMonth 
-            ? `No photos found in ${monthName}.`
-            : 'No photos found in your gallery!',
+            ? `No photos or videos found in ${monthName}.`
+            : 'No photos or videos found in your gallery!',
           [{ text: 'OK', onPress: () => isFilteringByMonth ? onBack() : setLoading(false) }]
         );
         setLoading(false);
@@ -680,7 +680,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         <View style={styles.centerContent}>
           <Text style={styles.loadingEmoji}>📸</Text>
           <Text style={styles.loadingText}>
-            {isSearchingMonth ? `Finding photos from ${monthName}...` : 'Loading your photos...'}
+            {isSearchingMonth ? `Finding media from ${monthName}...` : 'Loading your photos & videos...'}
           </Text>
           <Text style={styles.loadingSubtext}>
             {isSearchingMonth ? 'Searching through your gallery' : 'This may take a moment'}
@@ -727,8 +727,8 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
           <Text style={styles.messageTitle}>All Done!</Text>
           <Text style={styles.messageSubtitle}>
             {isSearchingMonth 
-              ? `No more photos in ${monthName}`
-              : 'You\'ve reviewed all your photos'}
+              ? `No more media in ${monthName}`
+              : 'You\'ve reviewed all your photos & videos'}
           </Text>
           <Text style={styles.statsText}>
             Deleted: {deletedCount} • Kept: {keptCount} • Favorited: {favoritedCount}

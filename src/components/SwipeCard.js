@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
+import { Video, ResizeMode } from 'expo-av';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -21,19 +22,46 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const [imageError, setImageError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef(null);
+  
+  const isVideo = photo.mediaType === 'video';
 
   // Reset animation values when photo changes
   useEffect(() => {
     translateX.value = 0;
     translateY.value = 0;
     setImageError(false);
+    setIsPlaying(false);
+    
+    // Pause video when changing
+    if (videoRef.current) {
+      videoRef.current.pauseAsync();
+    }
   }, [photo.id]);
 
   // Memoize handlers for performance
   const handleLoadError = useCallback(() => {
-    if (__DEV__) console.error('Image load error for:', photo.id);
+    if (__DEV__) console.error('Media load error for:', photo.id);
     setImageError(true);
   }, [photo.id]);
+
+  const togglePlayPause = useCallback(async () => {
+    if (!videoRef.current || !isVideo) return;
+    
+    try {
+      const status = await videoRef.current.getStatusAsync();
+      if (status.isPlaying) {
+        await videoRef.current.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await videoRef.current.playAsync();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Error toggling video:', error);
+    }
+  }, [isVideo]);
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
@@ -130,22 +158,60 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
     <View style={styles.container}>
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.card, animatedCardStyle]}>
-          {/* Optimized Image with expo-image for better performance */}
-          <Image
-            source={{ uri: photo.uri }}
-            style={styles.image}
-            contentFit="contain"
-            transition={200}
-            onError={handleLoadError}
-            priority="high"
-            cachePolicy="memory-disk"
-          />
+          {/* Video or Image */}
+          {isVideo ? (
+            <TouchableOpacity 
+              style={styles.videoContainer} 
+              onPress={togglePlayPause}
+              activeOpacity={0.9}
+            >
+              <Video
+                ref={videoRef}
+                source={{ uri: photo.uri }}
+                style={styles.video}
+                resizeMode={ResizeMode.CONTAIN}
+                shouldPlay={false}
+                isLooping={false}
+                onError={handleLoadError}
+                useNativeControls={false}
+              />
+              
+              {/* Play/Pause Overlay */}
+              {!isPlaying && (
+                <View style={styles.playOverlay}>
+                  <View style={styles.playButton}>
+                    <Text style={styles.playIcon}>▶</Text>
+                  </View>
+                  <Text style={styles.videoLabel}>🎬 VIDEO</Text>
+                </View>
+              )}
+              
+              {/* Video Duration */}
+              {photo.duration && (
+                <View style={styles.durationBadge}>
+                  <Text style={styles.durationText}>
+                    {Math.floor(photo.duration / 60)}:{String(Math.floor(photo.duration % 60)).padStart(2, '0')}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <Image
+              source={{ uri: photo.uri }}
+              style={styles.image}
+              contentFit="contain"
+              transition={200}
+              onError={handleLoadError}
+              priority="high"
+              cachePolicy="memory-disk"
+            />
+          )}
 
           {/* Error message */}
           {imageError && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>⚠️</Text>
-              <Text style={styles.errorTextSmall}>Failed to load image</Text>
+              <Text style={styles.errorTextSmall}>Failed to load {isVideo ? 'video' : 'image'}</Text>
             </View>
           )}
 
@@ -292,6 +358,69 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  videoContainer: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000000',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  playButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  playIcon: {
+    fontSize: 32,
+    color: '#000000',
+    marginLeft: 4,
+  },
+  videoLabel: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  durationBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  durationText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 
