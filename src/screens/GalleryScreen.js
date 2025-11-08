@@ -506,59 +506,34 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     try {
       console.log('❤️ Adding to favorites:', currentPhoto.id);
       
-      if (Platform.OS === 'android') {
-        // Android: Create asset info to mark as favorite
-        try {
-          // Try to mark as favorite using asset info
-          await MediaLibrary.createAssetAsync(currentPhoto.uri);
-          
-          // Also add to a Favorites album as backup
-          const albums = await MediaLibrary.getAlbumsAsync();
-          let favoritesAlbum = albums.find(album => 
-            album.title.toLowerCase() === 'favorites' || 
-            album.title.toLowerCase() === 'favourite' ||
-            album.title === 'CleanSwipe Favorites'
-          );
-          
-          if (!favoritesAlbum) {
-            console.log('📁 Creating CleanSwipe Favorites album...');
-            favoritesAlbum = await MediaLibrary.createAlbumAsync('CleanSwipe Favorites', currentPhoto, false);
-            console.log('✅ Created album!');
-          } else {
-            console.log('📁 Adding to CleanSwipe Favorites album...');
-            await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
-            console.log('✅ Added to album!');
-          }
-          
-          setAlertConfig({
-            visible: true,
-            title: 'Added to Favorites!',
-            message: 'Photo added to "CleanSwipe Favorites" album in your gallery.',
-            emoji: '❤️',
-            buttons: [{ text: 'OK', style: 'primary' }]
-          });
-        } catch (androidError) {
-          console.error('Android favorite error:', androidError);
-          throw androidError;
-        }
+      // Get all albums
+      const albums = await MediaLibrary.getAlbumsAsync();
+      
+      // Find or create Favorites album
+      let favoritesAlbum = albums.find(album => 
+        album.title === 'CleanSwipe Favorites' ||
+        album.title.toLowerCase() === 'favorites' || 
+        album.title.toLowerCase() === 'favourite'
+      );
+      
+      if (!favoritesAlbum) {
+        console.log('📁 Creating CleanSwipe Favorites album...');
+        favoritesAlbum = await MediaLibrary.createAlbumAsync('CleanSwipe Favorites', currentPhoto, false);
+        console.log('✅ Created album and added photo!');
       } else {
-        // iOS: Use standard album approach
-        const albums = await MediaLibrary.getAlbumsAsync();
-        let favoritesAlbum = albums.find(album => 
-          album.title.toLowerCase() === 'favorites' || 
-          album.title.toLowerCase() === 'favourite'
-        );
-        
-        if (!favoritesAlbum) {
-          console.log('📁 Creating Favorites album...');
-          favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
-          console.log('✅ Created Favorites album!');
-        } else {
-          console.log('📁 Adding to Favorites album...');
-          await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
-          console.log('✅ Added to Favorites!');
-        }
+        console.log('📁 Adding to existing album:', favoritesAlbum.title);
+        await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
+        console.log('✅ Added to album!');
       }
+      
+      // Show success message
+      setAlertConfig({
+        visible: true,
+        title: 'Added to Favorites!',
+        message: `Photo added to "${favoritesAlbum.title}" album in your gallery.`,
+        emoji: '❤️',
+        buttons: [{ text: 'OK', style: 'primary' }]
+      });
 
       // Add to undo stack
       setUndoStack(prev => [...prev, {
