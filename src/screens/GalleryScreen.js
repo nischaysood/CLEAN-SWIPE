@@ -24,7 +24,7 @@ const BONUS_SWIPES_KEY = '@CleanSwipe:bonusSwipes';
 const IS_PRO_KEY = '@CleanSwipe:isPro';
 const HAS_SEEN_DELETE_INFO_KEY = '@CleanSwipe:hasSeenDeleteInfo';
 
-export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onPhotoDeleted, onViewDeleted, deletedPhotosCount }) {
+export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onPhotoDeleted, onPhotoRestored, onViewDeleted, deletedPhotosCount }) {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -491,31 +491,64 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     try {
       console.log('❤️ Adding to favorites:', currentPhoto.id);
       
-      // Get or create Favorites album
-      const albums = await MediaLibrary.getAlbumsAsync();
-      let favoritesAlbum = albums.find(album => 
-        album.title.toLowerCase() === 'favorites' || 
-        album.title.toLowerCase() === 'favourite'
-      );
-      
-      if (!favoritesAlbum) {
-        // Create new Favorites album with this photo
-        console.log('📁 Creating Favorites album...');
-        favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
-        console.log('✅ Created Favorites album!');
+      if (Platform.OS === 'android') {
+        // Android: Create asset info to mark as favorite
+        try {
+          // Try to mark as favorite using asset info
+          await MediaLibrary.createAssetAsync(currentPhoto.uri);
+          
+          // Also add to a Favorites album as backup
+          const albums = await MediaLibrary.getAlbumsAsync();
+          let favoritesAlbum = albums.find(album => 
+            album.title.toLowerCase() === 'favorites' || 
+            album.title.toLowerCase() === 'favourite' ||
+            album.title === 'CleanSwipe Favorites'
+          );
+          
+          if (!favoritesAlbum) {
+            console.log('📁 Creating CleanSwipe Favorites album...');
+            favoritesAlbum = await MediaLibrary.createAlbumAsync('CleanSwipe Favorites', currentPhoto, false);
+            console.log('✅ Created album!');
+          } else {
+            console.log('📁 Adding to CleanSwipe Favorites album...');
+            await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
+            console.log('✅ Added to album!');
+          }
+          
+          Alert.alert(
+            '❤️ Added to Favorites!',
+            'Photo added to "CleanSwipe Favorites" album in your gallery.',
+            [{ text: 'OK', style: 'default' }],
+            { cancelable: true }
+          );
+        } catch (androidError) {
+          console.error('Android favorite error:', androidError);
+          throw androidError;
+        }
       } else {
-        // Add to existing Favorites album
-        console.log('📁 Adding to existing Favorites album...');
-        await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
-        console.log('✅ Added to Favorites!');
+        // iOS: Use standard album approach
+        const albums = await MediaLibrary.getAlbumsAsync();
+        let favoritesAlbum = albums.find(album => 
+          album.title.toLowerCase() === 'favorites' || 
+          album.title.toLowerCase() === 'favourite'
+        );
+        
+        if (!favoritesAlbum) {
+          console.log('📁 Creating Favorites album...');
+          favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
+          console.log('✅ Created Favorites album!');
+        } else {
+          console.log('📁 Adding to Favorites album...');
+          await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
+          console.log('✅ Added to Favorites!');
+        }
       }
 
       // Add to undo stack
       setUndoStack(prev => [...prev, {
         type: 'favorite',
         photo: currentPhoto,
-        index: currentIndex,
-        albumId: favoritesAlbum.id
+        index: currentIndex
       }]);
 
       setFavoritedCount(favoritedCount + 1);
@@ -526,7 +559,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       console.error('❌ Error favoriting photo:', error);
       Alert.alert(
         'Could Not Add to Favorites',
-        'There was an issue adding this photo to favorites. Try again?',
+        `There was an issue adding this photo to favorites.\n\nError: ${error.message}\n\nNote: On Android, photos are added to "CleanSwipe Favorites" album.`,
         [
           { text: 'Skip', onPress: async () => {
             setCurrentIndex(currentIndex + 1);
@@ -572,6 +605,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     if (type === 'delete') {
       setDeletedCount(prev => Math.max(0, prev - 1));
       setDeletedPhotos(prev => prev.filter(p => p.id !== photo.id));
+      
+      // Notify parent that photo was restored
+      if (onPhotoRestored) {
+        onPhotoRestored(photo);
+      }
+      
       console.log('↶ Undone delete');
     } else if (type === 'keep') {
       setKeptCount(prev => Math.max(0, prev - 1));

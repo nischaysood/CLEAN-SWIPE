@@ -103,6 +103,11 @@ export default function App() {
     setDeletedPhotos(prev => [...prev, photo]);
   };
 
+  const handlePhotoRestored = (photo) => {
+    // Remove from deleted photos when undo is clicked
+    setDeletedPhotos(prev => prev.filter(p => p.id !== photo.id));
+  };
+
   const handleRestorePhotos = (photoIds) => {
     // Remove from deleted photos
     setDeletedPhotos(prev => prev.filter(p => !photoIds.includes(p.id)));
@@ -152,6 +157,7 @@ export default function App() {
             selectedMonth={selectedMonth}
             onBack={handleBackToMonthSelector}
             onPhotoDeleted={handlePhotoDeleted}
+            onPhotoRestored={handlePhotoRestored}
             onViewDeleted={handleViewDeletedPhotos}
             deletedPhotosCount={deletedPhotos.length}
           />
