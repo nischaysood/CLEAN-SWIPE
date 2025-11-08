@@ -7,6 +7,7 @@ import SwipeCard from '../components/SwipeCard';
 import BottomActions from '../components/BottomActions';
 import PaywallScreen from '../components/PaywallScreen';
 import BannerAdComponent from '../components/BannerAdComponent';
+import CustomAlert from '../components/CustomAlert';
 import PurchaseService from '../services/PurchaseService';
 import AdService from '../services/AdService';
 
@@ -44,6 +45,15 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const [hasMorePhotos, setHasMorePhotos] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadAttemptsRef = useRef(0); // Track loading attempts to prevent infinite loops
+  
+  // Custom alert state
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    emoji: '✨',
+    buttons: []
+  });
 
   useEffect(() => {
     initializeApp();
@@ -156,12 +166,19 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     if (!isPro && newCount % 50 === 0 && newCount > 0) {
       console.log(`📺 Showing rewarded ad after ${newCount} swipes`);
       
-      Alert.alert(
-        '🎁 Watch Ad for 20 More Swipes!',
-        'Watch a short video to get 20 bonus swipes.',
-        [
+      setAlertConfig({
+        visible: true,
+        title: 'Watch Ad for 20 More Swipes!',
+        message: 'Watch a short video to get 20 bonus swipes.',
+        emoji: '🎁',
+        buttons: [
+          {
+            text: 'Maybe Later',
+            style: 'secondary',
+          },
           {
             text: 'Watch Video',
+            style: 'primary',
             onPress: async () => {
               const rewarded = await AdService.showRewardedAd();
               if (rewarded) {
@@ -174,22 +191,20 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
                   console.error('Error saving bonus swipes:', error);
                 }
                 
-                Alert.alert(
-                  '🎉 Bonus Unlocked!',
-                  `You earned ${BONUS_SWIPES_AFTER_AD} bonus swipes!`,
-                  [{ text: 'Awesome!', style: 'default' }]
-                );
+                setAlertConfig({
+                  visible: true,
+                  title: 'Bonus Unlocked!',
+                  message: `You earned ${BONUS_SWIPES_AFTER_AD} bonus swipes!`,
+                  emoji: '🎉',
+                  buttons: [{ text: 'Awesome!', style: 'primary' }]
+                });
               } else {
                 console.log('⚠️ Ad not ready or not watched completely');
               }
             },
           },
-          {
-            text: 'Maybe Later',
-            style: 'cancel',
-          },
         ]
-      );
+      });
     }
   };
 
@@ -515,12 +530,13 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
             console.log('✅ Added to album!');
           }
           
-          Alert.alert(
-            '❤️ Added to Favorites!',
-            'Photo added to "CleanSwipe Favorites" album in your gallery.',
-            [{ text: 'OK', style: 'default' }],
-            { cancelable: true }
-          );
+          setAlertConfig({
+            visible: true,
+            title: 'Added to Favorites!',
+            message: 'Photo added to "CleanSwipe Favorites" album in your gallery.',
+            emoji: '❤️',
+            buttons: [{ text: 'OK', style: 'primary' }]
+          });
         } catch (androidError) {
           console.error('Android favorite error:', androidError);
           throw androidError;
@@ -557,18 +573,28 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       await checkAndLoadMore();
     } catch (error) {
       console.error('❌ Error favoriting photo:', error);
-      Alert.alert(
-        'Could Not Add to Favorites',
-        `There was an issue adding this photo to favorites.\n\nError: ${error.message}\n\nNote: On Android, photos are added to "CleanSwipe Favorites" album.`,
-        [
-          { text: 'Skip', onPress: async () => {
-            setCurrentIndex(currentIndex + 1);
-            await incrementSwipeCount();
-            await checkAndLoadMore();
-          }},
-          { text: 'Retry', onPress: () => handleFavorite() }
+      setAlertConfig({
+        visible: true,
+        title: 'Could Not Add to Favorites',
+        message: `There was an issue adding this photo to favorites.\n\nNote: On Android, photos are added to "CleanSwipe Favorites" album.`,
+        emoji: '⚠️',
+        buttons: [
+          { 
+            text: 'Skip', 
+            style: 'secondary',
+            onPress: async () => {
+              setCurrentIndex(currentIndex + 1);
+              await incrementSwipeCount();
+              await checkAndLoadMore();
+            }
+          },
+          { 
+            text: 'Retry', 
+            style: 'primary',
+            onPress: () => handleFavorite() 
+          }
         ]
-      );
+      });
     }
   }, [isPro, swipeCount, bonusSwipes, currentIndex, photos, favoritedCount]);
 
@@ -770,6 +796,16 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         onDelete={handleDelete} 
         onKeep={handleKeep}
         onFavorite={handleFavorite}
+      />
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        emoji={alertConfig.emoji}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
       />
     </View>
   );
