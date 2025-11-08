@@ -169,6 +169,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
                 emoji: '🎉',
                 buttons: [{ text: 'Awesome!', style: 'primary' }]
               });
+            } else {
+              // If they didn't watch the ad, go back to month selector
+              if (onBack) onBack();
             }
           },
         },
@@ -179,7 +182,11 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
             setShowPaywall(true);
           }
         },
-      ]
+      ],
+      onCloseCallback: () => {
+        // When X is clicked, go back to month selector
+        if (onBack) onBack();
+      }
     });
   };
 
@@ -806,6 +813,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         emoji={alertConfig.emoji}
         buttons={alertConfig.buttons}
         onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+        onCloseCallback={alertConfig.onCloseCallback}
       />
     </View>
   );

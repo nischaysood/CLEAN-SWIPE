@@ -1,18 +1,25 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 
-export default function CustomAlert({ visible, onClose, title, message, emoji = '✨', buttons = [] }) {
+export default function CustomAlert({ visible, onClose, title, message, emoji = '✨', buttons = [], onCloseCallback }) {
+  const handleClose = () => {
+    onClose();
+    if (onCloseCallback) {
+      onCloseCallback();
+    }
+  };
+
   return (
     <Modal
       visible={visible}
       transparent={true}
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
           
