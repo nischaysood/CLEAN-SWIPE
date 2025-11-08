@@ -11,6 +11,11 @@ export default function CustomAlert({ visible, onClose, title, message, emoji = 
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
+          {/* Close button */}
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+          
           {/* Emoji */}
           <Text style={styles.emoji}>{emoji}</Text>
           
@@ -21,7 +26,7 @@ export default function CustomAlert({ visible, onClose, title, message, emoji = 
           <Text style={styles.message}>{message}</Text>
           
           {/* Buttons */}
-          <View style={styles.buttonContainer}>
+          <View style={[styles.buttonContainer, buttons.length > 2 && styles.buttonContainerVertical]}>
             {buttons.length > 0 ? (
               buttons.map((button, index) => (
                 <TouchableOpacity
@@ -31,7 +36,7 @@ export default function CustomAlert({ visible, onClose, title, message, emoji = 
                     button.style === 'primary' && styles.buttonPrimary,
                     button.style === 'secondary' && styles.buttonSecondary,
                     button.style === 'danger' && styles.buttonDanger,
-                    buttons.length === 1 && styles.buttonFull,
+                    (buttons.length === 1 || buttons.length > 2) && styles.buttonFull,
                   ]}
                   onPress={() => {
                     if (button.onPress) button.onPress();
@@ -86,9 +91,25 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 16,
   },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  closeText: {
+    color: '#AAAAAA',
+    fontSize: 24,
+    fontWeight: '300',
+  },
   emoji: {
     fontSize: 56,
     marginBottom: 16,
+    marginTop: 8,
   },
   title: {
     fontSize: 24,
@@ -107,18 +128,21 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     width: '100%',
-    gap: 12,
+    gap: 10,
+  },
+  buttonContainerVertical: {
+    flexDirection: 'column',
   },
   button: {
     flex: 1,
     paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonFull: {
-    flex: 1,
+    width: '100%',
   },
   buttonPrimary: {
     backgroundColor: '#4CAF50',
@@ -132,8 +156,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF5252',
   },
   buttonText: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
+    textAlign: 'center',
   },
   buttonTextPrimary: {
     color: '#FFFFFF',

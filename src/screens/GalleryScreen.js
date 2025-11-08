@@ -149,13 +149,6 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       emoji: '⚡',
       buttons: [
         {
-          text: 'Go Back',
-          style: 'secondary',
-          onPress: () => {
-            // Just close the dialog, stay on screen
-          }
-        },
-        {
           text: 'Watch Video',
           style: 'primary',
           onPress: async () => {
