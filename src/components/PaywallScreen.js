@@ -77,9 +77,9 @@ export default function PaywallScreen({ swipesUsed, onUpgrade }) {
 
   const getPrice = () => {
     if (packages.length > 0 && packages[0].product) {
-      return packages[0].product.priceString || '$4.99/month';
+      return packages[0].product.priceString || '$2.99/month';
     }
-    return '$4.99/month';
+    return '$2.99/month';
   };
 
   return (
@@ -87,13 +87,17 @@ export default function PaywallScreen({ swipesUsed, onUpgrade }) {
       <View style={styles.content}>
         <Text style={styles.emoji}>🚀</Text>
         
-        <Text style={styles.title}>Free Limit Reached!</Text>
+        <Text style={styles.title}>Upgrade to Pro</Text>
         
         <Text style={styles.subtitle}>
-          You've used all {swipesUsed} free swipes
+          Remove ads and get unlimited swipes
         </Text>
 
         <View style={styles.featuresContainer}>
+          <View style={styles.featureRow}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={styles.featureText}>No ads ever</Text>
+          </View>
           <View style={styles.featureRow}>
             <Text style={styles.checkmark}>✓</Text>
             <Text style={styles.featureText}>Unlimited swipes</Text>
@@ -104,11 +108,7 @@ export default function PaywallScreen({ swipesUsed, onUpgrade }) {
           </View>
           <View style={styles.featureRow}>
             <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.featureText}>Advanced features</Text>
-          </View>
-          <View style={styles.featureRow}>
-            <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.featureText}>AI-powered cleanup (coming soon)</Text>
+            <Text style={styles.featureText}>Future premium features</Text>
           </View>
         </View>
 

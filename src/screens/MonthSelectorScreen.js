@@ -33,6 +33,12 @@ export default function MonthSelectorScreen({ onSelectMonth }) {
         // Process this batch
         for (const asset of album.assets) {
           const date = new Date(asset.creationTime);
+          
+          // Skip invalid dates (like January 1970)
+          if (date.getFullYear() < 2000 || isNaN(date.getTime())) {
+            continue;
+          }
+          
           const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
           
           if (!monthMap[monthKey]) {

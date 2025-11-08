@@ -31,7 +31,7 @@
     },
     "android": {
       "package": "com.nischaysood.cleanswipe",
-      "versionCode": 3,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
@@ -50,6 +50,13 @@
           "photosPermission": "Allow CleanSwipe to access and delete your photos to help clean up your gallery.",
           "savePhotosPermission": "Allow CleanSwipe to save photos.",
           "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-XXXXX~YYYYY",
+          "iosAppId": "ca-app-pub-XXXXX~ZZZZZ"
         }
       ]
     ],

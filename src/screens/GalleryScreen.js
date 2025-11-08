@@ -7,6 +7,7 @@ import SwipeCard from '../components/SwipeCard';
 import BottomActions from '../components/BottomActions';
 import PaywallScreen from '../components/PaywallScreen';
 import PurchaseService from '../services/PurchaseService';
+import AdService from '../services/AdService';
 
 // Disable console logs in production
 if (!__DEV__) {
@@ -121,10 +122,19 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       console.error('Error saving swipe count:', error);
     }
 
-    // Check if limit reached
-    if (!isPro && newCount >= FREE_SWIPES_LIMIT) {
-      setShowPaywall(true);
+    // Show ad every 50 swipes for free users
+    if (!isPro && newCount % 50 === 0 && newCount > 0) {
+      console.log(`📺 Showing ad after ${newCount} swipes`);
+      const adShown = await AdService.showInterstitialAd();
+      if (!adShown) {
+        console.log('⚠️ Ad not ready, continuing...');
+      }
     }
+
+    // Check if limit reached (optional - you can remove this if you want ads only)
+    // if (!isPro && newCount >= FREE_SWIPES_LIMIT) {
+    //   setShowPaywall(true);
+    // }
   };
 
   const requestPermissions = async () => {
@@ -207,23 +217,28 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       // SMART LOADING: If filtering by month, use date range for INSTANT results!
       let album;
       
-      if (isFilteringByMonth && !loadMore) {
+      if (isFilteringByMonth) {
         // Calculate date range for the selected month
         const startOfMonth = new Date(selectedYear, selectedMonth, 1);
         const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
         
-        console.log(`📅 Using date range: ${startOfMonth.toISOString()} to ${endOfMonth.toISOString()}`);
+        if (!loadMore) {
+          console.log(`📅 Using date range: ${startOfMonth.toISOString()} to ${endOfMonth.toISOString()}`);
+        }
         
-        // Load photos directly from this date range - INSTANT!
+        // Load ALL photos from this month using pagination
         album = await MediaLibrary.getAssetsAsync({
           mediaType: 'photo',
           sortBy: [[MediaLibrary.SortBy.creationTime, false]],
           createdAfter: startOfMonth.getTime(),
           createdBefore: endOfMonth.getTime(),
-          first: 100, // Get up to 100 photos from this month
+          first: 500, // Load 500 at a time
+          after: loadMore ? endCursor : undefined,
         });
         
-        console.log(`✅ Found ${album.assets.length} photos in ${selectedYear}-${selectedMonth + 1}`);
+        if (!loadMore) {
+          console.log(`✅ Found ${album.assets.length} photos in ${selectedYear}-${selectedMonth + 1} (hasMore: ${album.hasNextPage})`);
+        }
       } else {
         // Regular loading for "All Photos" or pagination
         const batchSize = 10;
@@ -235,6 +250,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
           after: loadMore ? endCursor : undefined,
         });
       }
+      
+      // Filter out invalid dates (like January 1970)
+      album.assets = album.assets.filter(asset => {
+        const date = new Date(asset.creationTime);
+        return date.getFullYear() >= 2000 && !isNaN(date.getTime());
+      });
 
       if (album.assets.length === 0 && !loadMore) {
         const monthName = isFilteringByMonth 
@@ -264,9 +285,17 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       setLoading(false);
       setIsLoadingMore(false);
       
-      // Preload more photos if needed
-      if (!loadMore && album.assets.length > 0 && album.hasNextPage && !isFilteringByMonth) {
-        if (album.assets.length < 20) {
+      // Auto-load more photos if we have more available
+      if (!loadMore && album.hasNextPage) {
+        const currentTotal = loadMore ? photos.length + album.assets.length : album.assets.length;
+        
+        // For month filtering, load all photos immediately
+        if (isFilteringByMonth) {
+          console.log(`🔄 Loading more photos from month... (current: ${currentTotal})`);
+          setTimeout(() => loadPhotos(true), 100);
+        } 
+        // For all photos, preload if less than 20
+        else if (currentTotal < 20) {
           console.log('🔄 Preloading next batch...');
           setTimeout(() => loadPhotos(true), 300);
         }
@@ -429,17 +458,26 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       // Add to favorites album
       console.log('❤️ Adding to favorites:', currentPhoto.id);
       
-      // Create or get favorites album
-      const albums = await MediaLibrary.getAlbumsAsync();
-      let favoritesAlbum = albums.find(album => album.title === 'Favorites');
-      
-      if (!favoritesAlbum) {
-        favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
-      } else {
-        await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
+      // Try to create or get favorites album
+      try {
+        const albums = await MediaLibrary.getAlbumsAsync();
+        let favoritesAlbum = albums.find(album => album.title === 'Favorites' || album.title === 'favorites');
+        
+        if (!favoritesAlbum) {
+          // Create new Favorites album
+          console.log('Creating Favorites album...');
+          favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
+          console.log('✅ Created Favorites album and added photo!');
+        } else {
+          // Add to existing album
+          console.log('Adding to existing Favorites album...');
+          await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
+          console.log('✅ Added to Favorites album!');
+        }
+      } catch (albumError) {
+        console.warn('⚠️ Could not add to Favorites album:', albumError.message);
+        // Continue anyway - just mark as favorited in app
       }
-
-      console.log('✅ Added to favorites!');
 
       // Clear any existing undo timeout
       if (undoTimeout) {
@@ -466,12 +504,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       // Load more photos if getting close to the end
       await checkAndLoadMore();
     } catch (error) {
-      console.error('❌ Error adding to favorites:', error);
-      Alert.alert(
-        'Unable to Favorite',
-        `Could not add to favorites: ${error.message}`,
-        [{ text: 'OK' }]
-      );
+      console.error('❌ Error favoriting photo:', error);
+      // Don't show error - just move to next photo
+      setFavoritedCount(favoritedCount + 1);
+      setCurrentIndex(currentIndex + 1);
+      await incrementSwipeCount();
+      await checkAndLoadMore();
     }
   }, [isPro, swipeCount, currentIndex, photos, favoritedCount, undoTimeout, lastAction]);
 
@@ -498,36 +536,43 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       setUndoTimeout(null);
     }
 
-    const { type, photo, index } = lastAction;
+    const { type, photo } = lastAction;
 
-    // Insert photo back at its original position
+    // Insert photo back at current position (so it shows up immediately)
     const updatedPhotos = [...photos];
-    updatedPhotos.splice(index, 0, photo);
+    updatedPhotos.splice(currentIndex, 0, photo);
     setPhotos(updatedPhotos);
     
-    // Move back to the restored photo
-    setCurrentIndex(index);
+    // Don't change currentIndex - photo will show at current position
 
     // Undo the count based on action type
     if (type === 'delete') {
       setDeletedCount(prev => Math.max(0, prev - 1));
       
+      // Remove from deleted photos list
+      setDeletedPhotos(prev => prev.filter(p => p.id !== photo.id));
+      
       // Note: Photo is in Recently Deleted, can't un-delete from device
-      Alert.alert(
-        '↶ Undone',
-        'Photo restored to swipe queue.\n\nNote: It\'s still in "Recently Deleted". Recover it from Photos app.',
-        [{ text: 'OK' }]
-      );
+      console.log('↶ Undone delete - photo restored to queue');
     } else if (type === 'keep') {
       setKeptCount(prev => Math.max(0, prev - 1));
+      console.log('↶ Undone keep - photo restored to queue');
     } else if (type === 'favorite') {
       setFavoritedCount(prev => Math.max(0, prev - 1));
-      // TODO: Remove from favorites album if needed
+      console.log('↶ Undone favorite - photo restored to queue');
+    }
+
+    // Undo the swipe count
+    setSwipeCount(prev => Math.max(0, prev - 1));
+    try {
+      await AsyncStorage.setItem(SWIPE_COUNT_KEY, Math.max(0, swipeCount - 1).toString());
+    } catch (error) {
+      console.error('Error updating swipe count:', error);
     }
 
     // Clear last action
     setLastAction(null);
-  }, [lastAction, undoTimeout, photos, deletedCount, keptCount, favoritedCount]);
+  }, [lastAction, undoTimeout, photos, currentIndex, swipeCount]);
 
   const handleUpgrade = async () => {
     // TODO: Implement actual payment integration (Stripe, RevenueCat, etc.)
@@ -557,13 +602,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   };
 
   const currentPhoto = photos[currentIndex];
+  const isSearchingMonth = selectedYear !== undefined && selectedMonth !== undefined;
+  const monthName = isSearchingMonth 
+    ? new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : '';
 
   if (loading) {
-    const isSearchingMonth = selectedYear !== undefined && selectedMonth !== undefined;
-    const monthName = isSearchingMonth 
-      ? new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : '';
-    
     return (
       <View style={styles.container}>
         <View style={styles.centerContent}>
@@ -596,6 +640,35 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   // Show paywall if limit reached
   if (showPaywall) {
     return <PaywallScreen swipesUsed={swipeCount} onUpgrade={handleUpgrade} />;
+  }
+
+  // Show "no more photos" when done
+  if (!currentPhoto && photos.length > 0) {
+    return (
+      <View style={styles.container}>
+        <TopPanel 
+          deletedCount={deletedPhotosCount || deletedCount} 
+          onUndo={handleUndo} 
+          canUndo={false}
+          swipesRemaining={isPro ? '∞' : Math.max(0, FREE_SWIPES_LIMIT - swipeCount)}
+          isPro={isPro}
+          onBack={onBack}
+          onViewDeleted={onViewDeleted}
+        />
+        <View style={styles.centerContent}>
+          <Text style={styles.messageText}>🎉</Text>
+          <Text style={styles.messageTitle}>All Done!</Text>
+          <Text style={styles.messageSubtitle}>
+            {isSearchingMonth 
+              ? `No more photos in ${monthName}`
+              : 'You\'ve reviewed all your photos'}
+          </Text>
+          <Text style={styles.statsText}>
+            Deleted: {deletedCount} • Kept: {keptCount} • Favorited: {favoritedCount}
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   const remainingSwipes = isPro ? '∞' : Math.max(0, FREE_SWIPES_LIMIT - swipeCount);

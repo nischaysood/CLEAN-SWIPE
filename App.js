@@ -6,6 +6,7 @@ import MonthSelectorScreen from './src/screens/MonthSelectorScreen';
 import GalleryScreen from './src/screens/GalleryScreen';
 import DeletedPhotosScreen from './src/screens/DeletedPhotosScreen';
 import PurchaseService from './src/services/PurchaseService';
+import AdService from './src/services/AdService';
 
 export default function App() {
   const [selectedMonth, setSelectedMonth] = useState(undefined);
@@ -15,9 +16,10 @@ export default function App() {
   const [showDeletedPhotos, setShowDeletedPhotos] = useState(false);
   const [deletedPhotos, setDeletedPhotos] = useState([]);
 
-  // Initialize RevenueCat on app start
+  // Initialize services on app start
   useEffect(() => {
     PurchaseService.initialize();
+    AdService.initialize();
   }, []);
 
   const handleSelectMonth = (year, month) => {
