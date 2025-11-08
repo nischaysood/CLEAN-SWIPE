@@ -18,8 +18,21 @@ export default function App() {
 
   // Initialize services on app start
   useEffect(() => {
-    PurchaseService.initialize();
-    AdService.initialize();
+    const initServices = async () => {
+      try {
+        await PurchaseService.initialize();
+      } catch (error) {
+        console.error('Failed to initialize PurchaseService:', error);
+      }
+      
+      try {
+        await AdService.initialize();
+      } catch (error) {
+        console.error('Failed to initialize AdService:', error);
+      }
+    };
+    
+    initServices();
   }, []);
 
   const handleSelectMonth = (year, month) => {
