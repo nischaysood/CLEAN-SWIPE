@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
-export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro, onBack, onViewDeleted }) {
+export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro, onBack, onViewDeleted, onOpenProfile }) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -34,16 +34,28 @@ export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemainin
           )}
         </View>
 
-        <TouchableOpacity
-          style={[styles.undoButton, !canUndo && styles.undoButtonDisabled]}
-          onPress={onUndo}
-          disabled={!canUndo}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.undoText, !canUndo && styles.undoTextDisabled]}>
-            ↶ Undo
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.rightSection}>
+          <TouchableOpacity
+            style={[styles.undoButton, !canUndo && styles.undoButtonDisabled]}
+            onPress={onUndo}
+            disabled={!canUndo}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.undoText, !canUndo && styles.undoTextDisabled]}>
+              ↶ Undo
+            </Text>
+          </TouchableOpacity>
+          
+          {onOpenProfile && (
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={onOpenProfile}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.profileIcon}>{isPro ? '✨' : '👤'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -134,5 +146,23 @@ const styles = StyleSheet.create({
   },
   undoTextDisabled: {
     color: '#555555',
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(26, 26, 26, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  profileIcon: {
+    fontSize: 20,
   },
 });
