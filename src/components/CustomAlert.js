@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 export default function CustomAlert({ visible, onClose, title, message, emoji = '✨', buttons = [] }) {
   return (
@@ -10,7 +11,7 @@ export default function CustomAlert({ visible, onClose, title, message, emoji = 
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <BlurView intensity={95} tint="dark" style={styles.container}>
           {/* Emoji */}
           <Text style={styles.emoji}>{emoji}</Text>
           
@@ -59,7 +60,7 @@ export default function CustomAlert({ visible, onClose, title, message, emoji = 
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </BlurView>
       </View>
     </Modal>
   );
@@ -74,19 +75,20 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   container: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 24,
+    backgroundColor: 'rgba(26, 26, 26, 0.85)',
+    borderRadius: 28,
     padding: 32,
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    elevation: 20,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    overflow: 'hidden',
   },
   emoji: {
     fontSize: 56,

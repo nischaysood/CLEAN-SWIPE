@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemaining, isPro, onBack, onViewDeleted }) {
   return (
-    <View style={styles.container}>
+    <BlurView intensity={80} tint="dark" style={styles.container}>
       <View style={styles.content}>
         {onBack && (
           <TouchableOpacity
@@ -45,7 +46,7 @@ export default function TopPanel({ deletedCount, onUndo, canUndo, swipesRemainin
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </BlurView>
   );
 }
 
@@ -54,9 +55,9 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 16,
     paddingHorizontal: 20,
-    backgroundColor: '#000000',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A1A',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   content: {
     flexDirection: 'row',
@@ -80,12 +81,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(26, 26, 26, 0.6)',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   counterLabel: {
     color: '#999999',
@@ -98,12 +99,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   swipesContainer: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: 'rgba(76, 175, 80, 0.3)',
   },
   swipesLabel: {
     color: '#4CAF50',
@@ -123,10 +124,10 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   undoButtonDisabled: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(26, 26, 26, 0.6)',
     shadowOpacity: 0,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   undoText: {
     color: '#FFFFFF',
