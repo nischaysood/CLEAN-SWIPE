@@ -15,7 +15,7 @@ import Animated, {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.9;
-const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
+const CARD_HEIGHT = SCREEN_HEIGHT * 0.55; // Reduced from 0.65 to avoid overlap
 const SWIPE_THRESHOLD = 100;
 
 function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {

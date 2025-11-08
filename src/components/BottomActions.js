@@ -38,7 +38,7 @@ export default function BottomActions({ onDelete, onKeep, onFavorite }) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+    paddingBottom: Platform.OS === 'ios' ? 90 : 70,
     paddingTop: 12,
     paddingHorizontal: 16,
     backgroundColor: '#000000',
