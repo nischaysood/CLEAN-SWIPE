@@ -10,7 +10,8 @@ export default function PermissionScreen({ onPermissionGranted }) {
     
     try {
       console.log('📱 Requesting photo permissions...');
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      // Request full access including write permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       
       console.log('📱 Permission status:', status);
       
