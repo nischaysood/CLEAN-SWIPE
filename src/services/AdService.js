@@ -1,27 +1,36 @@
 import { Platform } from 'react-native';
 import mobileAds, { 
-  InterstitialAd, 
+  InterstitialAd,
+  RewardedAd,
+  RewardedAdEventType,
+  BannerAd,
+  BannerAdSize,
   AdEventType, 
   TestIds 
 } from 'react-native-google-mobile-ads';
 
-// TODO: Replace with your actual AdMob Ad Unit IDs from Google AdMob console
+// Ad Unit IDs
 const AD_UNIT_IDS = {
-  ios: __DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-XXXXX/YYYYY', // Replace with your iOS Ad Unit ID
-  android: __DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-XXXXX/ZZZZZ', // Replace with your Android Ad Unit ID
+  rewarded: {
+    ios: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-XXXXX/YYYYY',
+    android: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-XXXXX/ZZZZZ',
+  },
+  banner: {
+    ios: __DEV__ ? TestIds.BANNER : 'ca-app-pub-XXXXX/YYYYY',
+    android: __DEV__ ? TestIds.BANNER : 'ca-app-pub-XXXXX/ZZZZZ',
+  },
 };
 
 class AdService {
   constructor() {
-    this.interstitialAd = null;
-    this.isAdLoaded = false;
+    this.rewardedAd = null;
+    this.isRewardedAdLoaded = false;
     this.isAdShowing = false;
     this.initialized = false;
   }
 
   /**
    * Initialize AdMob
-   * Call this once when app starts
    */
   async initialize() {
     try {
@@ -29,94 +38,126 @@ class AdService {
       this.initialized = true;
       console.log('✅ AdMob initialized successfully');
       
-      // Preload first ad
-      this.loadInterstitialAd();
+      // Preload first rewarded ad
+      this.loadRewardedAd();
     } catch (error) {
       console.error('❌ Error initializing AdMob:', error);
     }
   }
 
   /**
-   * Load an interstitial ad (full-screen ad)
+   * Load a rewarded video ad
    */
-  loadInterstitialAd() {
+  loadRewardedAd() {
     try {
-      const adUnitId = Platform.OS === 'ios' ? AD_UNIT_IDS.ios : AD_UNIT_IDS.android;
+      const adUnitId = Platform.OS === 'ios' ? AD_UNIT_IDS.rewarded.ios : AD_UNIT_IDS.rewarded.android;
       
-      this.interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
+      this.rewardedAd = RewardedAd.createForAdRequest(adUnitId, {
         requestNonPersonalizedAdsOnly: false,
       });
 
       // Set up event listeners
-      this.interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
-        console.log('✅ Interstitial ad loaded');
-        this.isAdLoaded = true;
+      this.rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        console.log('✅ Rewarded ad loaded');
+        this.isRewardedAdLoaded = true;
       });
 
-      this.interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
-        console.log('👋 User closed the ad');
+      this.rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
+        console.log('🎁 User earned reward:', reward);
+      });
+
+      this.rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
+        console.log('👋 User closed rewarded ad');
         this.isAdShowing = false;
-        this.isAdLoaded = false;
+        this.isRewardedAdLoaded = false;
         
         // Preload next ad
-        this.loadInterstitialAd();
+        this.loadRewardedAd();
       });
 
-      this.interstitialAd.addAdEventListener(AdEventType.ERROR, (error) => {
-        console.error('❌ Ad failed to load:', error);
-        this.isAdLoaded = false;
+      this.rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
+        console.error('❌ Rewarded ad failed to load:', error);
+        this.isRewardedAdLoaded = false;
         
         // Try to load again after 30 seconds
-        setTimeout(() => this.loadInterstitialAd(), 30000);
+        setTimeout(() => this.loadRewardedAd(), 30000);
       });
 
       // Start loading the ad
-      this.interstitialAd.load();
+      this.rewardedAd.load();
     } catch (error) {
-      console.error('❌ Error loading interstitial ad:', error);
+      console.error('❌ Error loading rewarded ad:', error);
     }
   }
 
   /**
-   * Show the interstitial ad
-   * @returns {Promise<boolean>} - Whether ad was shown successfully
+   * Show rewarded video ad
+   * @returns {Promise<boolean>} - Whether user watched the ad and earned reward
    */
-  async showInterstitialAd() {
-    try {
-      if (!this.initialized) {
-        console.warn('⚠️ AdMob not initialized');
-        return false;
-      }
+  async showRewardedAd() {
+    return new Promise((resolve) => {
+      try {
+        if (!this.initialized) {
+          console.warn('⚠️ AdMob not initialized');
+          resolve(false);
+          return;
+        }
 
-      if (this.isAdShowing) {
-        console.warn('⚠️ Ad is already showing');
-        return false;
-      }
+        if (this.isAdShowing) {
+          console.warn('⚠️ Ad is already showing');
+          resolve(false);
+          return;
+        }
 
-      if (!this.isAdLoaded || !this.interstitialAd) {
-        console.warn('⚠️ Ad not loaded yet');
-        // Try to load it now
-        this.loadInterstitialAd();
-        return false;
-      }
+        if (!this.isRewardedAdLoaded || !this.rewardedAd) {
+          console.warn('⚠️ Rewarded ad not loaded yet');
+          this.loadRewardedAd();
+          resolve(false);
+          return;
+        }
 
-      console.log('📺 Showing interstitial ad...');
-      this.isAdShowing = true;
-      await this.interstitialAd.show();
-      return true;
-    } catch (error) {
-      console.error('❌ Error showing ad:', error);
-      this.isAdShowing = false;
-      return false;
-    }
+        console.log('📺 Showing rewarded ad...');
+        this.isAdShowing = true;
+
+        // Listen for reward
+        const rewardListener = this.rewardedAd.addAdEventListener(
+          RewardedAdEventType.EARNED_REWARD,
+          () => {
+            console.log('🎁 User earned reward!');
+            resolve(true);
+          }
+        );
+
+        // Listen for close without reward
+        const closeListener = this.rewardedAd.addAdEventListener(
+          AdEventType.CLOSED,
+          () => {
+            rewardListener();
+            closeListener();
+          }
+        );
+
+        this.rewardedAd.show();
+      } catch (error) {
+        console.error('❌ Error showing rewarded ad:', error);
+        this.isAdShowing = false;
+        resolve(false);
+      }
+    });
   }
 
   /**
-   * Check if ad is ready to show
-   * @returns {boolean}
+   * Check if rewarded ad is ready
    */
-  isAdReady() {
-    return this.isAdLoaded && !this.isAdShowing;
+  isRewardedAdReady() {
+    return this.isRewardedAdLoaded && !this.isAdShowing;
+  }
+
+  /**
+   * Get banner ad unit ID
+   */
+  getBannerAdUnitId() {
+    return Platform.OS === 'ios' ? AD_UNIT_IDS.banner.ios : AD_UNIT_IDS.banner.android;
   }
 }
 

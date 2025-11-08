@@ -134,7 +134,7 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
           <Image
             source={{ uri: photo.uri }}
             style={styles.image}
-            contentFit="cover"
+            contentFit="contain"
             transition={200}
             onError={handleLoadError}
             priority="high"

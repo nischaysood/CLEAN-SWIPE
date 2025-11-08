@@ -6,6 +6,7 @@ import TopPanel from '../components/TopPanel';
 import SwipeCard from '../components/SwipeCard';
 import BottomActions from '../components/BottomActions';
 import PaywallScreen from '../components/PaywallScreen';
+import BannerAdComponent from '../components/BannerAdComponent';
 import PurchaseService from '../services/PurchaseService';
 import AdService from '../services/AdService';
 
@@ -17,7 +18,9 @@ if (!__DEV__) {
 }
 
 const FREE_SWIPES_LIMIT = 50;
+const BONUS_SWIPES_AFTER_AD = 20;
 const SWIPE_COUNT_KEY = '@CleanSwipe:swipeCount';
+const BONUS_SWIPES_KEY = '@CleanSwipe:bonusSwipes';
 const IS_PRO_KEY = '@CleanSwipe:isPro';
 const HAS_SEEN_DELETE_INFO_KEY = '@CleanSwipe:hasSeenDeleteInfo';
 
@@ -30,9 +33,10 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const [favoritedCount, setFavoritedCount] = useState(0);
   const [deletedPhotos, setDeletedPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastAction, setLastAction] = useState(null); // For undo: {type, photo, index}
+  const [undoStack, setUndoStack] = useState([]); // Stack of actions for undo
   const [undoTimeout, setUndoTimeout] = useState(null);
   const [swipeCount, setSwipeCount] = useState(0);
+  const [bonusSwipes, setBonusSwipes] = useState(0);
   const [isPro, setIsPro] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [hasSeenDeleteInfo, setHasSeenDeleteInfo] = useState(false);
@@ -47,6 +51,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
 
   const initializeApp = async () => {
     await loadSwipeCount();
+    await loadBonusSwipes();
     await loadProStatus();
     await loadDeleteInfoStatus();
     await requestPermissions();
@@ -60,6 +65,17 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       }
     } catch (error) {
       console.error('Error loading swipe count:', error);
+    }
+  };
+
+  const loadBonusSwipes = async () => {
+    try {
+      const bonus = await AsyncStorage.getItem(BONUS_SWIPES_KEY);
+      if (bonus !== null) {
+        setBonusSwipes(parseInt(bonus, 10));
+      }
+    } catch (error) {
+      console.error('Error loading bonus swipes:', error);
     }
   };
 
@@ -96,10 +112,11 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const showDeleteInfoDialog = () => {
     Alert.alert(
       '🗑️ Safe Deletion',
-      `Photos you delete are moved to your phone's Recently Deleted album (iOS) or Trash (Android).\n\nYou can recover them within 30 days before they're permanently removed.\n\nThis message won't show again.`,
+      `Photos you delete are moved to your phone's Recently Deleted album (iOS) or Trash (Android).\n\nYou can recover them within 30 days before they're permanently removed.`,
       [
         {
           text: 'Got it!',
+          style: 'default',
           onPress: async () => {
             try {
               await AsyncStorage.setItem(HAS_SEEN_DELETE_INFO_KEY, 'true');
@@ -109,11 +126,24 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
             }
           },
         },
-      ]
+      ],
+      { cancelable: false }
     );
   };
 
   const incrementSwipeCount = async () => {
+    // Use bonus swipes first
+    if (bonusSwipes > 0) {
+      const newBonus = bonusSwipes - 1;
+      setBonusSwipes(newBonus);
+      try {
+        await AsyncStorage.setItem(BONUS_SWIPES_KEY, newBonus.toString());
+      } catch (error) {
+        console.error('Error saving bonus swipes:', error);
+      }
+      return;
+    }
+
     const newCount = swipeCount + 1;
     setSwipeCount(newCount);
     try {
@@ -122,19 +152,45 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       console.error('Error saving swipe count:', error);
     }
 
-    // Show ad every 50 swipes for free users
+    // Show rewarded ad every 50 swipes for free users
     if (!isPro && newCount % 50 === 0 && newCount > 0) {
-      console.log(`📺 Showing ad after ${newCount} swipes`);
-      const adShown = await AdService.showInterstitialAd();
-      if (!adShown) {
-        console.log('⚠️ Ad not ready, continuing...');
-      }
+      console.log(`📺 Showing rewarded ad after ${newCount} swipes`);
+      
+      Alert.alert(
+        '🎁 Watch Ad for 20 More Swipes!',
+        'Watch a short video to get 20 bonus swipes.',
+        [
+          {
+            text: 'Watch Video',
+            onPress: async () => {
+              const rewarded = await AdService.showRewardedAd();
+              if (rewarded) {
+                // Grant 20 bonus swipes
+                const newBonus = bonusSwipes + BONUS_SWIPES_AFTER_AD;
+                setBonusSwipes(newBonus);
+                try {
+                  await AsyncStorage.setItem(BONUS_SWIPES_KEY, newBonus.toString());
+                } catch (error) {
+                  console.error('Error saving bonus swipes:', error);
+                }
+                
+                Alert.alert(
+                  '🎉 Bonus Unlocked!',
+                  `You earned ${BONUS_SWIPES_AFTER_AD} bonus swipes!`,
+                  [{ text: 'Awesome!', style: 'default' }]
+                );
+              } else {
+                console.log('⚠️ Ad not ready or not watched completely');
+              }
+            },
+          },
+          {
+            text: 'Maybe Later',
+            style: 'cancel',
+          },
+        ]
+      );
     }
-
-    // Check if limit reached (optional - you can remove this if you want ads only)
-    // if (!isPro && newCount >= FREE_SWIPES_LIMIT) {
-    //   setShowPaywall(true);
-    // }
   };
 
   const requestPermissions = async () => {
@@ -314,7 +370,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
 
   const handleDelete = useCallback(async () => {
     // Check if user has reached free limit
-    if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
+    if (!isPro && swipeCount >= FREE_SWIPES_LIMIT && bonusSwipes === 0) {
       setShowPaywall(true);
       return;
     }
@@ -353,23 +409,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       photoToDelete.deletedAt = new Date().toISOString();
       console.log('✅ Photo moved to recycle bin!');
       
-      // Clear any existing undo timeout
-      if (undoTimeout) {
-        clearTimeout(undoTimeout);
-      }
-
-      // Set last action for undo (3 seconds)
-      setLastAction({
+      // Add to undo stack
+      setUndoStack(prev => [...prev, {
         type: 'delete',
         photo: photoToDelete,
         index: currentIndex
-      });
-
-      // Auto-clear undo after 3 seconds
-      const timeout = setTimeout(() => {
-        setLastAction(null);
-      }, 3000);
-      setUndoTimeout(timeout);
+      }]);
 
       // Remove photo from array
       const updatedPhotos = [...photos];
@@ -404,11 +449,11 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         ]
       );
     }
-  }, [isPro, swipeCount, currentIndex, photos, hasSeenDeleteInfo]);
+  }, [isPro, swipeCount, bonusSwipes, currentIndex, photos, hasSeenDeleteInfo]);
 
   const handleKeep = useCallback(async () => {
     // Check if user has reached free limit
-    if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
+    if (!isPro && swipeCount >= FREE_SWIPES_LIMIT && bonusSwipes === 0) {
       setShowPaywall(true);
       return;
     }
@@ -417,23 +462,12 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
 
     const currentPhoto = photos[currentIndex];
     
-    // Clear any existing undo timeout
-    if (undoTimeout) {
-      clearTimeout(undoTimeout);
-    }
-
-    // Set last action for undo (3 seconds)
-    setLastAction({
+    // Add to undo stack
+    setUndoStack(prev => [...prev, {
       type: 'keep',
       photo: currentPhoto,
       index: currentIndex
-    });
-
-    // Auto-clear undo after 3 seconds
-    const timeout = setTimeout(() => {
-      setLastAction(null);
-    }, 3000);
-    setUndoTimeout(timeout);
+    }]);
 
     setKeptCount(keptCount + 1);
     setCurrentIndex(currentIndex + 1);
@@ -441,11 +475,11 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
 
     // Load more photos if getting close to the end
     await checkAndLoadMore();
-  }, [isPro, swipeCount, currentIndex, photos, keptCount, undoTimeout, lastAction]);
+  }, [isPro, swipeCount, bonusSwipes, currentIndex, photos, keptCount]);
 
   const handleFavorite = useCallback(async () => {
     // Check if user has reached free limit
-    if (!isPro && swipeCount >= FREE_SWIPES_LIMIT) {
+    if (!isPro && swipeCount >= FREE_SWIPES_LIMIT && bonusSwipes === 0) {
       setShowPaywall(true);
       return;
     }
@@ -455,63 +489,55 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     const currentPhoto = photos[currentIndex];
     
     try {
-      // Add to favorites album
       console.log('❤️ Adding to favorites:', currentPhoto.id);
       
-      // Try to create or get favorites album
-      try {
-        const albums = await MediaLibrary.getAlbumsAsync();
-        let favoritesAlbum = albums.find(album => album.title === 'Favorites' || album.title === 'favorites');
-        
-        if (!favoritesAlbum) {
-          // Create new Favorites album
-          console.log('Creating Favorites album...');
-          favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
-          console.log('✅ Created Favorites album and added photo!');
-        } else {
-          // Add to existing album
-          console.log('Adding to existing Favorites album...');
-          await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
-          console.log('✅ Added to Favorites album!');
-        }
-      } catch (albumError) {
-        console.warn('⚠️ Could not add to Favorites album:', albumError.message);
-        // Continue anyway - just mark as favorited in app
+      // Get or create Favorites album
+      const albums = await MediaLibrary.getAlbumsAsync();
+      let favoritesAlbum = albums.find(album => 
+        album.title.toLowerCase() === 'favorites' || 
+        album.title.toLowerCase() === 'favourite'
+      );
+      
+      if (!favoritesAlbum) {
+        // Create new Favorites album with this photo
+        console.log('📁 Creating Favorites album...');
+        favoritesAlbum = await MediaLibrary.createAlbumAsync('Favorites', currentPhoto, false);
+        console.log('✅ Created Favorites album!');
+      } else {
+        // Add to existing Favorites album
+        console.log('📁 Adding to existing Favorites album...');
+        await MediaLibrary.addAssetsToAlbumAsync([currentPhoto], favoritesAlbum, false);
+        console.log('✅ Added to Favorites!');
       }
 
-      // Clear any existing undo timeout
-      if (undoTimeout) {
-        clearTimeout(undoTimeout);
-      }
-
-      // Set last action for undo
-      setLastAction({
+      // Add to undo stack
+      setUndoStack(prev => [...prev, {
         type: 'favorite',
         photo: currentPhoto,
-        index: currentIndex
-      });
-
-      // Auto-clear undo after 3 seconds
-      const timeout = setTimeout(() => {
-        setLastAction(null);
-      }, 3000);
-      setUndoTimeout(timeout);
+        index: currentIndex,
+        albumId: favoritesAlbum.id
+      }]);
 
       setFavoritedCount(favoritedCount + 1);
       setCurrentIndex(currentIndex + 1);
       await incrementSwipeCount();
-
-      // Load more photos if getting close to the end
       await checkAndLoadMore();
     } catch (error) {
       console.error('❌ Error favoriting photo:', error);
-      // Don't show error - just move to next photo
-      setFavoritedCount(favoritedCount + 1);
-      setCurrentIndex(currentIndex + 1);
-      await incrementSwipeCount();
-      await checkAndLoadMore();
+      Alert.alert(
+        'Could Not Add to Favorites',
+        'There was an issue adding this photo to favorites. Try again?',
+        [
+          { text: 'Skip', onPress: async () => {
+            setCurrentIndex(currentIndex + 1);
+            await incrementSwipeCount();
+            await checkAndLoadMore();
+          }},
+          { text: 'Retry', onPress: () => handleFavorite() }
+        ]
+      );
     }
-  }, [isPro, swipeCount, currentIndex, photos, favoritedCount, undoTimeout, lastAction]);
+  }, [isPro, swipeCount, bonusSwipes, currentIndex, photos, favoritedCount]);
 
   const checkAndLoadMore = async () => {
     // Aggressive loading for first 20 photos, then relax
@@ -528,51 +554,52 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   };
 
   const handleUndo = useCallback(async () => {
-    if (!lastAction) return;
+    if (undoStack.length === 0) return;
 
-    // Clear the undo timeout
-    if (undoTimeout) {
-      clearTimeout(undoTimeout);
-      setUndoTimeout(null);
-    }
-
+    // Get last action from stack
+    const lastAction = undoStack[undoStack.length - 1];
     const { type, photo } = lastAction;
 
-    // Insert photo back at current position (so it shows up immediately)
+    // Remove from stack
+    setUndoStack(prev => prev.slice(0, -1));
+
+    // Insert photo back at current position
     const updatedPhotos = [...photos];
     updatedPhotos.splice(currentIndex, 0, photo);
     setPhotos(updatedPhotos);
-    
-    // Don't change currentIndex - photo will show at current position
 
     // Undo the count based on action type
     if (type === 'delete') {
       setDeletedCount(prev => Math.max(0, prev - 1));
-      
-      // Remove from deleted photos list
       setDeletedPhotos(prev => prev.filter(p => p.id !== photo.id));
-      
-      // Note: Photo is in Recently Deleted, can't un-delete from device
-      console.log('↶ Undone delete - photo restored to queue');
+      console.log('↶ Undone delete');
     } else if (type === 'keep') {
       setKeptCount(prev => Math.max(0, prev - 1));
-      console.log('↶ Undone keep - photo restored to queue');
+      console.log('↶ Undone keep');
     } else if (type === 'favorite') {
       setFavoritedCount(prev => Math.max(0, prev - 1));
-      console.log('↶ Undone favorite - photo restored to queue');
+      console.log('↶ Undone favorite');
     }
 
-    // Undo the swipe count
-    setSwipeCount(prev => Math.max(0, prev - 1));
-    try {
-      await AsyncStorage.setItem(SWIPE_COUNT_KEY, Math.max(0, swipeCount - 1).toString());
-    } catch (error) {
-      console.error('Error updating swipe count:', error);
+    // Undo the swipe/bonus count
+    if (bonusSwipes > 0) {
+      const newBonus = bonusSwipes + 1;
+      setBonusSwipes(newBonus);
+      try {
+        await AsyncStorage.setItem(BONUS_SWIPES_KEY, newBonus.toString());
+      } catch (error) {
+        console.error('Error updating bonus swipes:', error);
+      }
+    } else {
+      const newCount = Math.max(0, swipeCount - 1);
+      setSwipeCount(newCount);
+      try {
+        await AsyncStorage.setItem(SWIPE_COUNT_KEY, newCount.toString());
+      } catch (error) {
+        console.error('Error updating swipe count:', error);
+      }
     }
-
-    // Clear last action
-    setLastAction(null);
-  }, [lastAction, undoTimeout, photos, currentIndex, swipeCount]);
+  }, [undoStack, photos, currentIndex, swipeCount, bonusSwipes]);
 
   const handleUpgrade = async () => {
     // TODO: Implement actual payment integration (Stripe, RevenueCat, etc.)
@@ -649,8 +676,8 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         <TopPanel 
           deletedCount={deletedPhotosCount || deletedCount} 
           onUndo={handleUndo} 
-          canUndo={false}
-          swipesRemaining={isPro ? '∞' : Math.max(0, FREE_SWIPES_LIMIT - swipeCount)}
+          canUndo={undoStack.length > 0}
+          swipesRemaining={isPro ? '∞' : (bonusSwipes > 0 ? `${bonusSwipes} bonus` : Math.max(0, FREE_SWIPES_LIMIT - swipeCount))}
           isPro={isPro}
           onBack={onBack}
           onViewDeleted={onViewDeleted}
@@ -671,15 +698,13 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     );
   }
 
-  const remainingSwipes = isPro ? '∞' : Math.max(0, FREE_SWIPES_LIMIT - swipeCount);
-
   return (
     <View style={styles.container}>
       <TopPanel 
         deletedCount={deletedPhotosCount || deletedCount} 
         onUndo={handleUndo} 
-        canUndo={lastAction !== null}
-        swipesRemaining={remainingSwipes}
+        canUndo={undoStack.length > 0}
+        swipesRemaining={isPro ? '∞' : (bonusSwipes > 0 ? `${bonusSwipes} bonus` : Math.max(0, FREE_SWIPES_LIMIT - swipeCount))}
         isPro={isPro}
         onBack={onBack}
         onViewDeleted={onViewDeleted}
@@ -698,6 +723,9 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
         
         {/* Silent background loading - no UI indicator */}
       </View>
+
+      {/* Banner Ad - only show for free users */}
+      {!isPro && <BannerAdComponent style={styles.bannerAd} />}
 
       <BottomActions 
         onDelete={handleDelete} 
@@ -772,5 +800,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     marginTop: 24,
+  },
+  bannerAd: {
+    marginBottom: 8,
   },
 });
