@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, Alert, Platform, TouchableOpacity } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TopPanel from '../components/TopPanel';
@@ -141,6 +141,55 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     );
   };
 
+  const showOutOfSwipesDialog = () => {
+    setAlertConfig({
+      visible: true,
+      title: 'Out of Swipes!',
+      message: 'You\'ve used all your free swipes. Watch a video to get 20 more, or upgrade to Pro for unlimited swipes!',
+      emoji: '⚡',
+      buttons: [
+        {
+          text: 'Go Back',
+          style: 'secondary',
+          onPress: () => {
+            // Just close the dialog, stay on screen
+          }
+        },
+        {
+          text: 'Watch Video',
+          style: 'primary',
+          onPress: async () => {
+            const rewarded = await AdService.showRewardedAd();
+            if (rewarded) {
+              const newBonus = bonusSwipes + BONUS_SWIPES_AFTER_AD;
+              setBonusSwipes(newBonus);
+              try {
+                await AsyncStorage.setItem(BONUS_SWIPES_KEY, newBonus.toString());
+              } catch (error) {
+                console.error('Error saving bonus swipes:', error);
+              }
+              
+              setAlertConfig({
+                visible: true,
+                title: 'Bonus Unlocked!',
+                message: `You earned ${BONUS_SWIPES_AFTER_AD} bonus swipes!`,
+                emoji: '🎉',
+                buttons: [{ text: 'Awesome!', style: 'primary' }]
+              });
+            }
+          },
+        },
+        {
+          text: 'Upgrade to Pro',
+          style: 'primary',
+          onPress: () => {
+            setShowPaywall(true);
+          }
+        },
+      ]
+    });
+  };
+
   const incrementSwipeCount = async () => {
     // Use bonus swipes first
     if (bonusSwipes > 0) {
@@ -162,50 +211,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
       console.error('Error saving swipe count:', error);
     }
 
-    // Show rewarded ad every 50 swipes for free users
-    if (!isPro && newCount % 50 === 0 && newCount > 0) {
-      console.log(`📺 Showing rewarded ad after ${newCount} swipes`);
-      
-      setAlertConfig({
-        visible: true,
-        title: 'Watch Ad for 20 More Swipes!',
-        message: 'Watch a short video to get 20 bonus swipes.',
-        emoji: '🎁',
-        buttons: [
-          {
-            text: 'Maybe Later',
-            style: 'secondary',
-          },
-          {
-            text: 'Watch Video',
-            style: 'primary',
-            onPress: async () => {
-              const rewarded = await AdService.showRewardedAd();
-              if (rewarded) {
-                // Grant 20 bonus swipes
-                const newBonus = bonusSwipes + BONUS_SWIPES_AFTER_AD;
-                setBonusSwipes(newBonus);
-                try {
-                  await AsyncStorage.setItem(BONUS_SWIPES_KEY, newBonus.toString());
-                } catch (error) {
-                  console.error('Error saving bonus swipes:', error);
-                }
-                
-                setAlertConfig({
-                  visible: true,
-                  title: 'Bonus Unlocked!',
-                  message: `You earned ${BONUS_SWIPES_AFTER_AD} bonus swipes!`,
-                  emoji: '🎉',
-                  buttons: [{ text: 'Awesome!', style: 'primary' }]
-                });
-              } else {
-                console.log('⚠️ Ad not ready or not watched completely');
-              }
-            },
-          },
-        ]
-      });
-    }
+    // No automatic ad popup - only show when out of swipes
   };
 
   const requestPermissions = async () => {
@@ -386,7 +392,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const handleDelete = useCallback(async () => {
     // Check if user has reached free limit
     if (!isPro && swipeCount >= FREE_SWIPES_LIMIT && bonusSwipes === 0) {
-      setShowPaywall(true);
+      showOutOfSwipesDialog();
       return;
     }
 
@@ -469,7 +475,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const handleKeep = useCallback(async () => {
     // Check if user has reached free limit
     if (!isPro && swipeCount >= FREE_SWIPES_LIMIT && bonusSwipes === 0) {
-      setShowPaywall(true);
+      showOutOfSwipesDialog();
       return;
     }
 
@@ -495,7 +501,7 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
   const handleFavorite = useCallback(async () => {
     // Check if user has reached free limit
     if (!isPro && swipeCount >= FREE_SWIPES_LIMIT && bonusSwipes === 0) {
-      setShowPaywall(true);
+      showOutOfSwipesDialog();
       return;
     }
 
@@ -709,8 +715,10 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
     return <PaywallScreen swipesUsed={swipeCount} onUpgrade={handleUpgrade} />;
   }
 
-  // Show "no more photos" when done
+  // Show "no more photos" or "out of swipes" when done
   if (!currentPhoto && photos.length > 0) {
+    const outOfSwipes = !isPro && swipeCount >= FREE_SWIPES_LIMIT && bonusSwipes === 0;
+    
     return (
       <View style={styles.container}>
         <TopPanel 
@@ -723,16 +731,40 @@ export default function GalleryScreen({ selectedYear, selectedMonth, onBack, onP
           onViewDeleted={onViewDeleted}
         />
         <View style={styles.centerContent}>
-          <Text style={styles.messageText}>🎉</Text>
-          <Text style={styles.messageTitle}>All Done!</Text>
-          <Text style={styles.messageSubtitle}>
-            {isSearchingMonth 
-              ? `No more photos in ${monthName}`
-              : 'You\'ve reviewed all your photos'}
-          </Text>
-          <Text style={styles.statsText}>
-            Deleted: {deletedCount} • Kept: {keptCount} • Favorited: {favoritedCount}
-          </Text>
+          {outOfSwipes ? (
+            <>
+              <Text style={styles.messageText}>⚡</Text>
+              <Text style={styles.messageTitle}>Out of Swipes!</Text>
+              <Text style={styles.messageSubtitle}>
+                Watch a video to get 20 more swipes, or upgrade to Pro for unlimited!
+              </Text>
+              <TouchableOpacity 
+                style={styles.watchAdButton}
+                onPress={showOutOfSwipesDialog}
+              >
+                <Text style={styles.watchAdButtonText}>Watch Video for 20 Swipes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.upgradeButtonSmall}
+                onPress={() => setShowPaywall(true)}
+              >
+                <Text style={styles.upgradeButtonSmallText}>Upgrade to Pro</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.messageText}>🎉</Text>
+              <Text style={styles.messageTitle}>All Done!</Text>
+              <Text style={styles.messageSubtitle}>
+                {isSearchingMonth 
+                  ? `No more photos in ${monthName}`
+                  : 'You\'ve reviewed all your photos'}
+              </Text>
+              <Text style={styles.statsText}>
+                Deleted: {deletedCount} • Kept: {keptCount} • Favorited: {favoritedCount}
+              </Text>
+            </>
+          )}
         </View>
       </View>
     );
@@ -856,5 +888,29 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  watchAdButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 24,
+    marginTop: 24,
+  },
+  watchAdButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  upgradeButtonSmall: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginTop: 12,
+  },
+  upgradeButtonSmallText: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
