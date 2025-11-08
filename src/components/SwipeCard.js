@@ -170,10 +170,15 @@ function SwipeCard({ photo, onSwipeLeft, onSwipeRight, onSwipeUp }) {
                 source={{ uri: photo.uri }}
                 style={styles.video}
                 resizeMode={ResizeMode.CONTAIN}
-                shouldPlay={false}
+                shouldPlay={isPlaying}
                 isLooping={false}
                 onError={handleLoadError}
                 useNativeControls={false}
+                onPlaybackStatusUpdate={(status) => {
+                  if (status.didJustFinish) {
+                    setIsPlaying(false);
+                  }
+                }}
               />
               
               {/* Play/Pause Overlay */}
