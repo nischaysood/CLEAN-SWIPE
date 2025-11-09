@@ -1,0 +1,129 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║          🚀 SWIPEWIPE PLAY STORE LAUNCH CHECKLIST 🚀         ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+📋 BEFORE YOU START
+═══════════════════════════════════════════════════════════════
+[ ] Read LAUNCH_TOMORROW.md
+[ ] Have 2-3 hours free
+[ ] Google account ready
+[ ] Credit card ready ($25 Play Console fee)
+[ ] App screenshots ready (at least 2)
+[ ] App description written
+
+
+🔑 STEP 1: GET API KEYS (1 hour)
+═══════════════════════════════════════════════════════════════
+
+AdMob (https://admob.google.com/)
+[ ] Create account
+[ ] Add app: "SwipeWipe"
+[ ] Create Banner ad unit
+[ ] Create Rewarded ad unit
+[ ] Save App ID: _________________________________
+[ ] Save Banner Unit ID: _________________________________
+[ ] Save Rewarded Unit ID: _________________________________
+
+RevenueCat (https://revenuecat.com/)
+[ ] Create account
+[ ] Create project: "SwipeWipe"
+[ ] Link Google Play Console
+[ ] Create product: pro_monthly
+[ ] Create entitlement: pro
+[ ] Save Android API Key: _________________________________
+
+Google Play Console
+[ ] Create subscription: pro_monthly
+[ ] Set price: $2.99/month
+[ ] Activate subscription
+
+
+💻 STEP 2: UPDATE CODE (10 minutes)
+═══════════════════════════════════════════════════════════════
+[ ] Run: ./setup-production-keys.sh
+[ ] Enter all API keys when prompted
+[ ] Run: ./verify-production-ready.sh
+[ ] All checks pass ✓
+
+
+🏗️ STEP 3: BUILD (15 minutes)
+═══════════════════════════════════════════════════════════════
+[ ] Run: eas build --platform android --profile production
+[ ] Wait for build to complete
+[ ] Download .aab file
+
+
+📤 STEP 4: UPLOAD (30 minutes)
+═══════════════════════════════════════════════════════════════
+[ ] Go to Play Console
+[ ] Production → Create new release
+[ ] Upload .aab file
+[ ] Add release notes
+[ ] Review release
+[ ] Submit for review
+
+
+🎉 STEP 5: WAIT FOR APPROVAL (1-3 days)
+═══════════════════════════════════════════════════════════════
+[ ] Check email for approval
+[ ] App goes live!
+[ ] Wait 1-2 hours for ads to activate
+[ ] Check AdMob dashboard
+
+
+📊 STEP 6: MONITOR (First week)
+═══════════════════════════════════════════════════════════════
+[ ] Check downloads daily
+[ ] Respond to reviews
+[ ] Monitor crash reports
+[ ] Check ad revenue in AdMob
+[ ] Check subscriptions in RevenueCat
+
+
+💰 EXPECTED REVENUE (First month)
+═══════════════════════════════════════════════════════════════
+1,000 downloads   = ~$479/month
+5,000 downloads   = ~$2,395/month
+10,000 downloads  = ~$4,790/month
+
+
+🚨 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════
+Ads not showing?
+→ Wait 1-2 hours after launch
+
+Subscription not working?
+→ Only works after Play Store approval
+
+Build failing?
+→ Run: eas build --platform android --profile production --clear-cache
+
+Can't find API keys?
+→ Check AdMob/RevenueCat dashboards
+
+
+📱 CONTACT INFO
+═══════════════════════════════════════════════════════════════
+AdMob Support: https://support.google.com/admob/
+RevenueCat Support: support@revenuecat.com
+Play Console Help: https://support.google.com/googleplay/android-developer/
+
+
+✅ FINAL CHECK
+═══════════════════════════════════════════════════════════════
+[ ] All API keys added
+[ ] Verification script passed
+[ ] Production build completed
+[ ] .aab file uploaded
+[ ] Release submitted
+[ ] 🎉 LAUNCHED!
+
+
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║                  🚀 GOOD LUCK! YOU GOT THIS! 🚀              ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝

@@ -1,8 +1,8 @@
 import { Platform, Alert } from 'react-native';
 
-// TODO: Replace with your actual RevenueCat API keys
-const REVENUECAT_API_KEY_IOS = 'appl_YOUR_IOS_KEY_HERE';
-const REVENUECAT_API_KEY_ANDROID = 'goog_YOUR_ANDROID_KEY_HERE';
+// RevenueCat API keys
+const REVENUECAT_API_KEY_IOS = 'appl_YOUR_IOS_KEY_HERE'; // Add iOS key when ready
+const REVENUECAT_API_KEY_ANDROID = 'goog_HGIjanorrHvafgaCgGunuxWRAEf';
 
 // Try to import Purchases, but handle if native module not available
 let Purchases = null;

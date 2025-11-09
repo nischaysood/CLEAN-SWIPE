@@ -1,10 +1,7 @@
 import { Platform } from 'react-native';
 import mobileAds, { 
-  InterstitialAd,
   RewardedAd,
   RewardedAdEventType,
-  BannerAd,
-  BannerAdSize,
   AdEventType, 
   TestIds 
 } from 'react-native-google-mobile-ads';
@@ -12,12 +9,12 @@ import mobileAds, {
 // Ad Unit IDs
 const AD_UNIT_IDS = {
   rewarded: {
-    ios: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-XXXXX/YYYYY',
-    android: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-XXXXX/ZZZZZ',
+    ios: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-7806672550529028/2256440355',
+    android: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-7806672550529028/2256440355',
   },
   banner: {
-    ios: __DEV__ ? TestIds.BANNER : 'ca-app-pub-XXXXX/YYYYY',
-    android: __DEV__ ? TestIds.BANNER : 'ca-app-pub-XXXXX/ZZZZZ',
+    ios: __DEV__ ? TestIds.BANNER : 'ca-app-pub-7806672550529028/8630277018',
+    android: __DEV__ ? TestIds.BANNER : 'ca-app-pub-7806672550529028/8630277018',
   },
 };
 
